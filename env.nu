@@ -66,7 +66,8 @@ def "gud clean-features" [] {
   git branch --list 
     | lines --skip-empty
     | str substring '2,' 
-    | where $it != 'master' and where $it != 'main' 
+    | where $it != 'master'
+		| where $it != 'main'
     | each { |it| git branch -D $it }
 }
 

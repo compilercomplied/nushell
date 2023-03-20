@@ -71,7 +71,7 @@ def "gud clean-features" [] {
     | each { |it| git branch -D $it }
 }
 
-def "gud log" [lines: int = 20] {
+def "gud log" [lines: int = 10] {
 	git log --pretty=%h»¦«%al»¦«%s»¦«%ah
 		| lines
 		| split column "»¦«" sha1 committer desc merged_at

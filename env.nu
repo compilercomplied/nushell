@@ -72,7 +72,7 @@ def "gud clean-features" [] {
 }
 
 def "gud log" [lines: int = 20] {
-	git log --pretty=%h»¦«%aN»¦«%s»¦«%ah
+	git log --pretty=%h»¦«%al»¦«%s»¦«%ah
 		| lines
 		| split column "»¦«" sha1 committer desc merged_at
 		| first $lines

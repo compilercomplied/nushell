@@ -59,9 +59,10 @@ let-env NU_PLUGIN_DIRS = [
 # --- general config -----------------------------------------------------------
 source ~/.cache/starship/init.nu
 # ------------------------------------------------------------------------------
-source ~/.cache/starship/init.nu
 
 # --- git goodies --------------------------------------------------------------
+
+# Purge all local branches except for main.
 def "gud clean-features" [] {
   git branch --list 
     | lines --skip-empty
@@ -71,10 +72,42 @@ def "gud clean-features" [] {
     | each { |it| git branch -D $it }
 }
 
+# Readable log that defaults to 10 commits.
 def "gud log" [lines: int = 10] {
 	git log --pretty=%h»¦«%al»¦«%s»¦«%ah
 		| lines
 		| split column "»¦«" sha1 committer desc merged_at
 		| first $lines
 }
+# ------------------------------------------------------------------------------
+
+# --- GPT ----------------------------------------------------------------------
+
+# Throw a prompt @chatgpt chat completions engine. Defaults to gpt-3.5-turbo.
+# Optionally append a file to the prompt as additional context.
+def "chat-gpt" [
+	prompt: string,	# Raw prompt to send.
+	file?: string	# Append contents of this file to the end of the prompt.
+] {
+
+	let api_url = 'https://api.openai.com/v1/chat/completions'
+	let auth_header_value = $'Bearer ($env.OPENAI_API_KEY)'
+	let engine = "gpt-3.5-turbo"
+
+	let message = (
+		if ($file == null) { $prompt } 
+		else { $"($prompt)\n(open -r $file)" }
+	)
+
+	# `http` failures bubble up; setting a variable with this won't obfuscate 
+	# errors. For some weird reason nushell still does not support multiline 
+	# command parsing, so it is not as readable as it should.
+	let response = http post $api_url -H [Authorization $auth_header_value] -t 'application/json' { "model": $engine, "messages": [ { "role": "user", "content": $message } ] }
+
+	echo ($response.choices.message.content | to text)
+
+}
+
+# Map alias.
+alias h = chat-gpt
 # ------------------------------------------------------------------------------

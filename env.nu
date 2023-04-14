@@ -134,12 +134,21 @@ def "chat-gpt" [
 		else { $"($prompt)\n(open -r $file)" }
 	)
 
+	# `http` command requires the body to be a valid json object (do not
+	# stringify).
+	let payload = { "model": $engine, "messages": [ { "role": "user", "content": $message } ] }
+
 	# `http` failures bubble up; setting a variable with this won't obfuscate 
 	# errors. For some weird reason nushell still does not support multiline 
 	# command parsing, so it is not as readable as it should.
-	# let response = http post $api_url -H [Authorization $auth_header_value] -t application/json $'{ "model": ($engine), "messages": [ { "role": "user", "content": ($message) } ] }'
+	let response = (http post --allow-errors --full $api_url $payload -H [Authorization $auth_header_value] -t application/json)
 
-	# echo ($response.choices.message.content | to text)
+	if ($response.status == 200) {
+		echo $response.body.choices.message.content | to text
+	} else {
+		# Helps debugging failure
+		echo $response
+	}
 
 }
 

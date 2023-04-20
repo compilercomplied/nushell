@@ -540,4 +540,4 @@ let-env config = {
 # --- Modules ------------------------------------------------------------------
 use gud.nu * 
 use chat_gpt.nu *
-use work.nu * 
+use work.nu

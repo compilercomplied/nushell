@@ -73,6 +73,7 @@ let-env ENV_CONVERSIONS = {
 # By default, <nushell-config-dir>/scripts is added
 let-env NU_LIB_DIRS = [
     ($nu.config-path | path dirname | path join 'scripts')
+    ($nu.config-path | path dirname | path join 'lib')
 ]
 
 # Directories to search for plugin binaries when calling register
@@ -82,76 +83,7 @@ let-env NU_PLUGIN_DIRS = [
     ($nu.config-path | path dirname | path join 'plugins')
 ]
 
-# To add entries to PATH (on Windows you might use Path), you can use the following pattern:
-# let-env PATH = ($env.PATH | split row (char esep) | prepend '/some/path')
-
 # ##############################################################################
 # --- Custom config below ------------------------------------------------------
 # ##############################################################################
-# There is no clear way to split configuration into multiple files so in the 
-# meantime this will do the trick.
-
-# --- general config -----------------------------------------------------------
 source ~/.cache/starship/init.nu
-# ------------------------------------------------------------------------------
-
-# --- git goodies --------------------------------------------------------------
-
-# Purge all local branches except for main.
-def "gud clean-features" [] {
-  git branch --list 
-    | lines --skip-empty
-    | str substring 2.. 
-    | where $it != 'master'
-		| where $it != 'main'
-    | each { |it| git branch -D $it }
-}
-
-# Readable log that defaults to 10 commits.
-def "gud log" [lines: int = 10] {
-	git log --pretty=%h»¦«%al»¦«%s»¦«%ah
-		| lines
-		| split column "»¦«" sha1 committer desc merged_at
-		| first $lines
-}
-# ------------------------------------------------------------------------------
-
-# --- GPT ----------------------------------------------------------------------
-
-# Throw a prompt @chatgpt chat completions engine. Defaults to gpt-3.5-turbo.
-# Optionally append a file to the prompt as additional context.
-def "chat-gpt" [
-	prompt: string,	# Raw prompt to send.
-	file?: string	# Append contents of this file to the end of the prompt.
-] {
-
-	let api_url = 'https://api.openai.com/v1/chat/completions'
-	let auth_header_value = $'Bearer ($env.OPENAI_API_KEY)'
-	let engine = "gpt-3.5-turbo"
-
-	let message = (
-		if ($file == null) { $prompt } 
-		else { $"($prompt)\n(open -r $file)" }
-	)
-
-	# `http` command requires the body to be a valid json object (do not
-	# stringify).
-	let payload = { "model": $engine, "messages": [ { "role": "user", "content": $message } ] }
-
-	# `http` failures bubble up; setting a variable with this won't obfuscate 
-	# errors. For some weird reason nushell still does not support multiline 
-	# command parsing, so it is not as readable as it should.
-	let response = (http post --allow-errors --full $api_url $payload -H [Authorization $auth_header_value] -t application/json)
-
-	if ($response.status == 200) {
-		echo $response.body.choices.message.content | to text
-	} else {
-		# Helps debugging failure
-		echo $response
-	}
-
-}
-
-# Map alias.
-alias h = chat-gpt
-# ------------------------------------------------------------------------------

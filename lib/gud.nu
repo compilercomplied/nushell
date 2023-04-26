@@ -50,7 +50,7 @@ export def "gud merge-master" [
   )
 
   let currentBranch = (
-    git status | lines | first 1 | to text | str substring (10..)
+    git status | lines | first 1 | to text | str substring (10..) | str trim
   )
 
   git checkout $mainBranch

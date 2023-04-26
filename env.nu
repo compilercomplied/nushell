@@ -87,3 +87,6 @@ let-env NU_PLUGIN_DIRS = [
 # --- Custom config below ------------------------------------------------------
 # ##############################################################################
 source ~/.cache/starship/init.nu
+
+# CsharpRepl with terminal colours.
+export alias csre = csharprepl --useTerminalPaletteTheme

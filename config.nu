@@ -297,7 +297,15 @@ let-env config = {
 
   hooks: {
     pre_prompt: [{||
-      null  # replace with source code to run before the prompt is shown
+      let envfile = ".env"
+      if ((ls | where name == $envfile | length) == 1) {
+        open -r $envfile
+            | lines --skip-empty 
+            | filter { |it| not ($it | str starts-with '#') } 
+            | parse "{name}={value}" 
+            | transpose --ignore-titles --header-row --as-record
+            | load-env
+      }
     }]
     pre_execution: [{||
       null  # replace with source code to run before the repl input is run

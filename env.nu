@@ -90,3 +90,4 @@ source ~/.cache/starship/init.nu
 
 # CsharpRepl with terminal colours.
 export alias csre = csharprepl --useTerminalPaletteTheme
+export alias rider = rider64

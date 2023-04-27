@@ -541,3 +541,4 @@ let-env config = {
 use gud.nu * 
 use chat_gpt.nu *
 use work.nu
+use job.nu

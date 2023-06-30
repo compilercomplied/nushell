@@ -20,3 +20,6 @@ style = 'blue'
 disabled = false
 style = 'cyan bold'
 symbol='☸️ '
+
+[container]
+disabled = true

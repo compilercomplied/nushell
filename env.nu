@@ -36,6 +36,8 @@ let-env NU_PLUGIN_DIRS = [
 # ##############################################################################
 # --- Custom config below ------------------------------------------------------
 # ##############################################################################
+let-env CODE_DIR = $"($env.HOMEPATH)/code"
+
 source ~/.cache/starship/init.nu
 
 # CsharpRepl with terminal colours.

@@ -1,7 +1,6 @@
 # Get editor completions based on the config schema
 "$schema" = 'https://starship.rs/config-schema.json'
 
-# Inserts a blank line between shell prompts
 add_newline = true
 
 [character]
@@ -16,10 +15,17 @@ disabled = true
 disabled = true
 style = 'blue'
 
-[kubernetes]
-disabled = false
-style = 'cyan bold'
-symbol='☸️ '
+# [kubernetes]
+# disabled = false
+# symbol='☸️ '
+# [kubernetes.context_aliases]
+# 'very-long-dev-k8s-namespace'='dev'
 
 [container]
 disabled = true
+
+[env_var.WORK_ENV]
+style = "blue"
+symbol = "🌌"
+format = "with [$symbol$env_value]($style) "
+default = ""

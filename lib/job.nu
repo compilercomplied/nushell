@@ -1,6 +1,6 @@
 # Spawn a new background process using pueue.
 export def spawn [
-    command: block   # The command to spawn.
+    closure: block   # The command to spawn.
 ] {
     let config_path = $nu.config-path
     let env_path = $nu.env-path

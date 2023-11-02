@@ -61,3 +61,21 @@ export def "merge-master" [
 
   ""
 }
+
+# List remote branches
+export def "branches remote" [
+] {
+	git branch --remote --format='%(refname:lstrip=3)»¦«%(authoremail)»¦«%(contents:subject)»¦«%(authordate:relative)' 
+		| lines 
+		| split column '»¦«' name author subject date
+}
+
+
+# List local branches
+export def "branches local" [
+] {
+	git branch --format='%(refname:short)»¦«%(authoremail)»¦«%(contents:subject)»¦«%(authordate:relative)' 
+		| lines 
+		| split column '»¦«' name author subject date
+}
+

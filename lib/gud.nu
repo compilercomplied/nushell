@@ -1,6 +1,6 @@
 
 # Purge all local branches except for main.
-export def "gud clean-features" [] {
+export def "clean-features" [] {
   git branch --list 
     | lines --skip-empty
     | str substring 2.. 
@@ -10,7 +10,7 @@ export def "gud clean-features" [] {
 }
 
 # Readable log that defaults to 10 commits.
-export def "gud log" [lines: int = 10] {
+export def "log" [lines: int = 10] {
 	git log --pretty=%h»¦«%al»¦«%s»¦«%ah
 		| lines
 		| split column "»¦«" sha1 committer desc merged_at
@@ -18,13 +18,13 @@ export def "gud log" [lines: int = 10] {
 }
 
 # Fetch prune and pull changes to current branch
-export def "gud pull" [] {
+export def "pull" [] {
   git fetch --prune
   git pull
 }
 
 # Checkout master and prune local branches.
-export def "gud finish-feature" [
+export def "finish-feature" [
   main?: string # Main branch (defaults to master).
 ] {
   let mainBranch = (
@@ -40,7 +40,7 @@ export def "gud finish-feature" [
 }
 
 # Checkout master, pull changes and merge into current branch.
-export def "gud merge-master" [
+export def "merge-master" [
   main?: string # Main branch (defaults to master).
 ] {
   let mainBranch = (

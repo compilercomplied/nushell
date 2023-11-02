@@ -550,4 +550,3 @@ use chat_gpt.nu *
 use gud.nu
 use nocker.nu
 use work.nu
-use job.nu

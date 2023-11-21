@@ -8,7 +8,7 @@ export def "containers" [] {
 
 # Show images
 export def "images" [] {
-	docker image ls --format "table {{.ID}}»¦«{{.Repository}}»¦«{{.Tag}}»¦«{{.Size}}"
+	docker image ls -a --format "table {{.ID}}»¦«{{.Repository}}»¦«{{.Tag}}»¦«{{.Size}}"
 		| lines 
 		| skip 1 
 		| parse "{Image}»¦«»¦«{Repo}»¦«{Tag}»¦«{Size}"

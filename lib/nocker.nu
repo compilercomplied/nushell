@@ -11,6 +11,6 @@ export def "images" [] {
 	docker image ls -a --format "table {{.ID}}»¦«{{.Repository}}»¦«{{.Tag}}»¦«{{.Size}}"
 		| lines 
 		| skip 1 
-		| parse "{Image}»¦«»¦«{Repo}»¦«{Tag}»¦«{Size}"
+		| parse "{Image}»¦«{Repo}»¦«{Tag}»¦«{Size}"
 }
 

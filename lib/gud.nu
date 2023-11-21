@@ -35,7 +35,7 @@ export def "finish-feature" [
   git checkout $mainBranch
   git fetch --prune
   git pull
-  gud clean-features
+  clean-features
 
 }
 

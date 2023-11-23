@@ -1,6 +1,6 @@
 
 # Placeholder work config.
-let worknuPath = $"($nu.default-config-dir)/lib/work.nu"
+let worknuPath = $"($nu.default-config-dir)/lib/lw.nu"
 let worknuPresent =  ($worknuPath| path exists)
 if (not $worknuPresent) {
 	print $"Work.nu missing, creating empty one at '($worknuPath)'"

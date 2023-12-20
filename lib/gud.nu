@@ -79,3 +79,10 @@ export def "branches local" [
 		| split column '»¦«' name author subject date
 }
 
+# Add .; commit -m; push
+export def "push" [
+  message?: string = "update remote" # Commit message
+] {
+	git add .; git commit -m $message; git push
+}
+

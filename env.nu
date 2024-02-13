@@ -36,10 +36,10 @@ $env.NU_PLUGIN_DIRS = [
 # ##############################################################################
 # --- Custom config below ------------------------------------------------------
 # ##############################################################################
-$env.CODE_DIR = $"($env.HOME)/code"
+$env.CODE_DIR = $"($env.HOMEPATH)/code"
 
 source ~/.cache/starship/init.nu
 
 # CsharpRepl with terminal colours.
-export alias csre = csharprepl --useTerminalPaletteTheme
+export alias csre = csharprepl --useTerminalPaletteTheme --useUnicode
 export alias rider = rider64

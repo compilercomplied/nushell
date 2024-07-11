@@ -3,10 +3,13 @@
 let worknuPath = $"($nu.default-config-dir)/lib/lw.nu"
 let worknuPresent =  ($worknuPath| path exists)
 if (not $worknuPresent) {
-	print $"Work.nu missing, creating empty one at '($worknuPath)'"
+	print $"lw.nu missing, creating empty one at '($worknuPath)'"
 	touch $worknuPath
 }
 
 
-print $"Overriding starship.toml"
+print $"Scaffolding starship config"
+mkdir ~/.cache/starship
+starship init nu | save -f ~/.cache/starship/init.nu
+mkdir ~/.config
 cp starship.toml ~/.config/starship.toml

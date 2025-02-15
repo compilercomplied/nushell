@@ -1,4 +1,4 @@
-# Throw a prompt @chatgpt chat completions engine. Defaults to gpt-3.5-turbo.
+# Throw a prompt @chatgpt chat completions engine. Defaults to gpt-4-turbo.
 # Optionally append a file to the prompt as additional context.
 export def "chat-gpt" [
 	prompt: string,	# Raw prompt to send.

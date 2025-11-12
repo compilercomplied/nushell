@@ -1,9 +1,10 @@
 $env.config = { show_banner: false }
+source ~/.cache/starship/init.nu
 
 
 # --- Modules ------------------------------------------------------------------
-use chat_gpt.nu *
-use gud.nu
-use nocker.nu
-use lw.nu
-use naz.nu
+use lib/chat_gpt.nu *
+use lib/gud.nu
+use lib/nocker.nu
+use lib/lw.nu
+use lib/naz.nu

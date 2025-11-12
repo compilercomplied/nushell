@@ -4,7 +4,6 @@
 add_newline = true
 
 [character]
-# success_symbol = "[➜](bold green)"
 success_symbol = "🐌"
 error_symbol = '[✗](bold red)'
 
@@ -23,9 +22,3 @@ style = 'blue'
 
 [container]
 disabled = true
-
-[env_var.WORK_ENV]
-style = "blue"
-symbol = "🌌"
-format = "with [$symbol$env_value]($style) "
-default = ""

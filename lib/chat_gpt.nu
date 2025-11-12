@@ -1,8 +1,14 @@
-# Throw a prompt @chatgpt chat completions engine. Defaults to gpt-4-turbo.
-# Optionally append a file to the prompt as additional context.
+# Send a prompt to OpenAI's ChatGPT API and receive a response.
+# Uses GPT-4-turbo model for high-quality responses.
+# Optionally includes file contents as additional context.
+#
+# Examples:
+#   chat-gpt "explain this error message"
+#   chat-gpt "review this code" script.nu
+#   h "what does this function do?"  # using alias
 export def "chat-gpt" [
 	prompt: string,	# Raw prompt to send.
-	file?: string	# Append contents of this file to the end of the prompt.
+	file?: string	# Optional file path to include its contents as context
 ] {
 
 	let api_url = 'https://api.openai.com/v1/chat/completions'
@@ -32,5 +38,6 @@ export def "chat-gpt" [
 
 }
 
-# Map alias.
+# Quick alias for chat-gpt command.
+# Usage: h "your question here"
 export alias h = chat-gpt

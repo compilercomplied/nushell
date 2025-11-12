@@ -1,5 +1,4 @@
-
-# Purge all local branches except for main.
+# Purge all local branches except for main and master.
 export def "clean-features" [] {
   git branch --list 
     | lines --skip-empty
@@ -9,23 +8,25 @@ export def "clean-features" [] {
     | each { |it| git branch -D $it }
 }
 
-# Readable log that defaults to 10 commits.
-export def "log" [lines: int = 10] {
+# Display a formatted git log with commit hash, author, message, and relative time.
+export def "log" [
+	lines: int = 10  # Number of commits to display (default: 10)
+] {
 	git log --pretty=%h»¦«%al»¦«%s»¦«%ah
 		| lines
 		| split column "»¦«" sha1 committer desc merged_at
 		| first $lines
 }
 
-# Fetch prune and pull changes to current branch
+# Fetch with pruning and pull changes to current branch.
 export def "pull" [] {
   git fetch --prune
   git pull
 }
 
-# Checkout master and prune local branches.
+# Complete feature development by switching to main branch and cleaning up.
 export def "finish-feature" [
-  main?: string # Main branch (defaults to master).
+  main?: string # Main branch name (defaults to 'master')
 ] {
   let mainBranch = (
 		if ($main == null) { "master" } 
@@ -39,9 +40,9 @@ export def "finish-feature" [
 
 }
 
-# Checkout master, pull changes and merge into current branch.
+# Merge main branch into current feature branch.
 export def "merge-master" [
-  main?: string # Main branch (defaults to master).
+  main?: string # Main branch name (defaults to 'master')
 ] {
   let mainBranch = (
 		if ($main == null) { "master" } 
@@ -62,26 +63,24 @@ export def "merge-master" [
   ""
 }
 
-# List remote branches
-export def "branches remote" [
-] {
+# List all remote branches with metadata.
+export def "branches remote" [] {
 	git branch --remote --format='%(refname:lstrip=3)»¦«%(authoremail)»¦«%(contents:subject)»¦«%(authordate:relative)' 
 		| lines 
 		| split column '»¦«' name author subject date
 }
 
 
-# List local branches
-export def "branches local" [
-] {
+# List all local branches with metadata.
+export def "branches local" [] {
 	git branch --format='%(refname:short)»¦«%(authoremail)»¦«%(contents:subject)»¦«%(authordate:relative)' 
 		| lines 
 		| split column '»¦«' name author subject date
 }
 
-# Add .; commit -m; push
+# Quick workflow: stage all changes, commit, and push to remote.
 export def "push" [
-  message?: string = "update remote" # Commit message
+  message?: string = "update remote" # Commit message (default: 'update remote')
 ] {
 	git add .; git commit -m $message; git push
 }

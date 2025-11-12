@@ -1,4 +1,4 @@
-# Throw a prompt @chatgpt chat completions engine. Defaults to gpt-3.5-turbo.
+# Throw a prompt @chatgpt chat completions engine. Defaults to gpt-4-turbo.
 # Optionally append a file to the prompt as additional context.
 export def "chat-gpt" [
 	prompt: string,	# Raw prompt to send.
@@ -7,7 +7,7 @@ export def "chat-gpt" [
 
 	let api_url = 'https://api.openai.com/v1/chat/completions'
 	let auth_header_value = $'Bearer ($env.OPENAI_API_KEY)'
-	let engine = "gpt-3.5-turbo"
+	let engine = "gpt-4-turbo"
 
 	let message = (
 		if ($file == null) { $prompt } 

@@ -6,5 +6,12 @@ source ~/.cache/starship/init.nu
 use lib/chat_gpt.nu *
 use lib/gud.nu
 use lib/nocker.nu
-use lib/lw.nu
+if ("lib/work.nu" | path exists) {
+    use lib/work.nu
+}
 use lib/naz.nu
+
+# --- OS-specific modules ------------------------------------------------------
+if $nu.os-info.name == "windows" {
+    use lib/windows.nu
+}

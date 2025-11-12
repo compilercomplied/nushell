@@ -30,7 +30,12 @@ export def "chat-gpt" [
 	let response = (http post --allow-errors --full $api_url $payload -H [Authorization $auth_header_value] -t application/json)
 
 	if ($response.status == 200) {
-		echo $response.body.choices.message.content | to text
+		let content = ($response.body.choices.message.content | to text)
+		if (which glow | is-not-empty) {
+			$content | glow
+		} else {
+			echo $content
+		}
 	} else {
 		# Helps debugging failure
 		echo $response

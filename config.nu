@@ -3,7 +3,7 @@ source ~/.cache/starship/init.nu
 
 
 # --- Modules ------------------------------------------------------------------
-use lib/chat_gpt.nu *
+use lib/llm.nu *
 use lib/gud.nu
 use lib/nocker.nu
 if ("lib/work.nu" | path exists) {

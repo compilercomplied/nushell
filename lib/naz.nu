@@ -14,7 +14,7 @@ def "nu-complete db resources" [] {
 
 # List all Azure Key Vaults accessible to the current account.
 export def "keyvaults" [
-	--owned  # Filter to show only keyvaults in owned resource groups (from $env.resource_groups)
+	--owned = true  # Filter to show only keyvaults in owned resource groups (from $env.resource_groups)
 ] {
 	let vaults = (az keyvault list --output json
 		| from json

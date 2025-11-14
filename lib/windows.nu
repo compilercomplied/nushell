@@ -1,14 +1,5 @@
 
 export-env {
-    # Docker wrapper for Windows that executes Docker commands through WSL
-    # Usage: docker <command> [args...]
-    # Example: docker ps -a
-    # Example: docker run -it ubuntu bash
-    def docker [
-        ...rest  # All docker commands and arguments are forwarded to WSL
-    ] {
-            ^wsl -e docker ...$rest
-    }
 
     # --- Fast node version manager config -------------------------------------
     # Only configure fnm if it's installed
@@ -36,7 +27,7 @@ export-env {
 
         fnm-env | load-env
 
-        if (not ($env | default false __fnm_hooked | get __fnm_hooked)) {
+        if ('__fnm_hooked' not-in $env) {
             $env.__fnm_hooked = true
             $env.config = ($env | default {} config).config
             $env.config = ($env.config | default {} hooks)
@@ -50,4 +41,12 @@ export-env {
         }
     }
     # --------------------------------------------------------------------------
+}
+
+# Docker wrapper for Windows that executes Docker commands through WSL
+# Usage: docker <command> [args...]
+# Example: docker ps -a
+# Example: docker run -it ubuntu bash
+export def --wrapped docker [...rest] {
+    ^wsl -e docker ...$rest
 }

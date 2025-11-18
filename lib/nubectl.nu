@@ -5,10 +5,21 @@ def "nu-complete k8s-object-types" [] {
 
 # Autocomplete for Kubernetes namespaces
 def "nu-complete k8s-namespaces" [] {
-    ["all"] | append (
-        ^kubectl get namespaces -o jsonpath='{.items[*].metadata.name}'
-        | split row ' '
-    )
+    let cache_dir = ($nu.temp-path | path join "nubectl-cache")
+    mkdir $cache_dir
+    
+    let current_context = (^kubectl config current-context | str trim)
+    let cache_file = ($cache_dir | path join $"namespaces-($current_context).txt")
+    
+    let namespaces = if ($cache_file | path exists) {
+        open $cache_file | lines
+    } else {
+        let ns = (^kubectl get namespaces -o jsonpath='{.items[*].metadata.name}' | split row ' ')
+        $ns | save -f $cache_file
+        $ns
+    }
+    
+    ["all"] | append $namespaces
 }
 
 # Pretty print events ordered by pod then by timestamp.

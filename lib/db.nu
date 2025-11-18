@@ -1,5 +1,29 @@
 # Database query module for MSSQL and Postgres with Entra ID support
 # Configuration is loaded from $env.db_configs (see work.nu)
+# Example configuration:
+# $env.db_configs = {
+# # --- MSSQL CONFIGS ---
+#     mssql-local: {
+#         engine: "mssql"
+#         host: "127.0.0.1"
+#         port: 9990
+#         db: "tbms"
+#         auth_type: "basic" # basic or entra
+#         user: "sa"
+#         pass: "#L337#P4SSW0RD#"
+#     }
+#     # --- POSTGRES CONFIGS ---
+#     pgsql-local: {
+#         engine: "pgsql"
+#         host: "localhost"
+#         port: 5999
+#         db: "postgres"
+#         auth_type: "basic"
+#         user: "postgres"
+#         pass: "adminpassword" # basic or entra
+#         schema: "dev"
+#     }
+# }
 
 # Validate that required external tools are available
 def check-tool [tool: string] {
@@ -95,6 +119,22 @@ def build-pgsql-connection [config: record] {
     }
 }
 
+def load-config-from-key [target: string] {
+
+    # Load config from environment (set in work.nu)
+    if ($env.db_configs? == null) {
+        error make {msg: "Database configurations not found. Make sure work.nu is loaded and $env.db_configs is set."}
+    }
+    
+    let config = ($env.db_configs | get --optional $target)
+
+    if ($config | is-empty) {
+        error make {msg: $"Configuration '($target)' not found in $env.db_configs. Available targets: ($env.db_configs | columns | str join ', ')"}
+    }
+
+    return $config
+}
+
 # Custom completer for database targets
 export def db-targets [] {
     if ($env.db_configs? != null) {
@@ -109,20 +149,12 @@ export def db-targets [] {
     }
 }
 
+# Execute a sql query in a database.
 export def query [
     target: string@db-targets,  # The key from $env.db_configs (e.g., 'local_mssql')
     query: string                # The SQL query to execute
 ] {
-    # Load config from environment (set in work.nu)
-    if ($env.db_configs? == null) {
-        error make {msg: "Database configurations not found. Make sure work.nu is loaded and $env.db_configs is set."}
-    }
-    
-    let config = ($env.db_configs | get --optional $target)
-
-    if ($config | is-empty) {
-        error make {msg: $"Configuration '($target)' not found in $env.db_configs. Available targets: ($env.db_configs | columns | str join ', ')"}
-    }
+    let config = load-config-from-key $target
 
     match $config.engine {
         "mssql" => {
@@ -201,6 +233,50 @@ export def query [
             }
         }
         
+        _ => {
+            error make {msg: $"Unsupported database engine: ($config.engine). Only 'mssql' and 'pgsql' are supported."}
+        }
+    }
+}
+
+# List all tables in a database.
+export def "tables" [
+    target: string@db-targets  # The key from $env.db_configs (e.g., 'local_mssql')
+] {
+    let config = load-config-from-key $target
+
+    match $config.engine {
+        "mssql" => {
+            let sql = "SELECT top(100) TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES ORDER BY TABLE_SCHEMA, TABLE_NAME"
+            query $target $sql
+        }
+        "pgsql" => {
+            let sql = "SELECT table_schema, table_name, table_type FROM information_schema.tables WHERE table_schema NOT IN ('pg_catalog', 'information_schema') ORDER BY table_schema, table_name"
+            query $target $sql
+        }
+        _ => {
+            error make {msg: $"Unsupported database engine: ($config.engine). Only 'mssql' and 'pgsql' are supported."}
+        }
+    }
+}
+
+# List all the columns in a table.
+export def "table columns" [
+    target: string@db-targets,  # The key from $env.db_configs (e.g., 'local_mssql')
+    name: string # Table name
+] {
+    let config = load-config-from-key $target
+
+    match $config.engine {
+        "mssql" => {
+            let columns_sql = "SELECT TOP(100) COLUMN_NAME as column_name, DATA_TYPE as data_type, CHARACTER_MAXIMUM_LENGTH as max_length, IS_NULLABLE as is_nullable, COLUMN_DEFAULT as default_value FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" ++ $name ++ "' ORDER BY ORDINAL_POSITION"
+            query $target $columns_sql
+        }
+        "pgsql" => {
+            # Get columns with data types
+            let columns_sql = "SELECT column_name, data_type, character_maximum_length as max_length, is_nullable, column_default as default_value FROM information_schema.columns WHERE table_name = '" ++ $name ++ "' ORDER BY ordinal_position"
+            query $target $columns_sql
+        }
         _ => {
             error make {msg: $"Unsupported database engine: ($config.engine). Only 'mssql' and 'pgsql' are supported."}
         }

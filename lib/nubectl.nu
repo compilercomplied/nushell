@@ -3,9 +3,17 @@ def "nu-complete k8s-object-types" [] {
     ["pod" "deployment"]
 }
 
+# Autocomplete for Kubernetes namespaces
+def "nu-complete k8s-namespaces" [] {
+    ["all"] | append (
+        ^kubectl get namespaces -o jsonpath='{.items[*].metadata.name}'
+        | split row ' '
+    )
+}
+
 # Pretty print events ordered by pod then by timestamp.
 export def events [ 
-    namespace: string = "all" # target namespace, defaults to all namespaces
+    namespace: string@"nu-complete k8s-namespaces" = "all" # target namespace, defaults to all namespaces
 ] {
     let target_namespace = if $namespace == "all" { ["-A"] } else { ["-n" $namespace] }
     
@@ -17,7 +25,7 @@ export def events [
 
 # List pods.
 export def pods [
-    namespace: string = "all" # target namespace, defaults to all namespaces
+    namespace: string@"nu-complete k8s-namespaces" = "all" # target namespace, defaults to all namespaces
 ] {
     let filter_namespace = $namespace != "all"
     let target_namespace = if $namespace == "all" { ["-A"] } else { ["-n" $namespace] }
@@ -37,7 +45,7 @@ export def pods [
 
 # List deployments.
 export def deployments [
-    namespace: string = "all" # target namespace, defaults to all namespaces
+    namespace: string@"nu-complete k8s-namespaces" = "all" # target namespace, defaults to all namespaces
 ] {
     let filter_namespace = $namespace != "all"
     let target_namespace = if $namespace == "all" { ["-A"] } else { ["-n" $namespace] }
@@ -57,7 +65,7 @@ export def deployments [
 
 # Describe a Kubernetes object.
 export def describe [
-    namespace: string, # target namespace, defaults to all namespaces
+    namespace: string@"nu-complete k8s-namespaces", # target namespace, defaults to all namespaces
     object_type: string@"nu-complete k8s-object-types" # type of object (pod or deployment)
     object_name: string # name of the object
     raw: bool = false # whether to output raw nu object or rely on explore

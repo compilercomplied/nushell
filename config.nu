@@ -9,9 +9,8 @@ use lib/llm.nu *
 use lib/naz.nu
 use lib/gud.nu
 use lib/nocker.nu
+use lib/nubectl.nu
 use lib/db.nu
 
 # --- OS-specific modules ------------------------------------------------------
-if $nu.os-info.name == "windows" {
-    use lib/windows.nu
-}
+use lib/windows.nu *

@@ -1,48 +1,133 @@
-# Send a prompt to OpenAI's ChatGPT API and receive a response.
-# Uses GPT-4-turbo model for high-quality responses.
-# Optionally includes file contents as additional context.
 #
-# Examples:
-#   chat-gpt "explain this error message"
-#   chat-gpt "review this code" script.nu
-#   h "what does this function do?"  # using alias
-export def "chat-gpt" [
-	prompt: string,	# Raw prompt to send.
-	file?: string	# Optional file path to include its contents as context
-] {
-
-	let api_url = 'https://api.openai.com/v1/chat/completions'
-	let auth_header_value = $'Bearer ($env.OPENAI_API_KEY)'
-	let engine = "gpt-4-turbo"
-
-	let message = (
-		if ($file == null) { $prompt } 
-		else { $"($prompt)\n(open -r $file)" }
-	)
-
-	# `http` command requires the body to be a valid json object (do not
-	# stringify).
-	let payload = { "model": $engine, "messages": [ { "role": "user", "content": $message } ] }
-
-	# `http` failures bubble up; setting a variable with this won't obfuscate 
-	# errors. For some weird reason nushell still does not support multiline 
-	# command parsing, so it is not as readable as it should.
-	let response = (http post --allow-errors --full $api_url $payload -H [Authorization $auth_header_value] -t application/json)
-
-	if ($response.status == 200) {
-		let content = ($response.body.choices.message.content | to text)
-		if (which glow | is-not-empty) {
-			$content | glow
-		} else {
-			echo $content
-		}
-	} else {
-		# Helps debugging failure
-		echo $response
-	}
-
+# Define autocompletion options
+def "nu-complete llm-tools" [] {
+    ["copilot", "gemini", "claude"]
 }
 
-# Quick alias for chat-gpt command.
-# Usage: h "your question here"
-export alias h = chat-gpt
+# Query llm agent
+export def q [
+    prompt?: string
+    --tool (-t): string@"nu-complete llm-tools"
+    --engine (-e): string
+] {
+    let user_input = if ($prompt != null) { 
+        $prompt 
+    } else { 
+        $in 
+    }
+
+    if ($user_input | is-empty) {
+        error make {msg: "Error: No prompt provided. Please pipe text or provide a string argument."}
+    }
+
+    let context = "CONTEXT: You are a CLI assistant running in a terminal. OUTPUT: Markdown. STYLE: Extremely brief, concise, and direct. No filler."
+    let final_payload = $"($context) Query: ($user_input)"
+
+    let agent = if ($tool != null) {
+        $tool
+    } else if ("DEFAULT_LLM_QUERYING_AGENT" in $env) {
+        $env.DEFAULT_LLM_QUERYING_AGENT
+    } else {
+        error make {msg: "Error: No tool specified and 'DEFAULT_LLM_QUERYING_AGENT' is not set."}
+    }
+
+    let final_engine = if ($engine != null) {
+        $engine
+    } else {
+        match $agent {
+            "copilot" => "claude-sonnet-4.5" 
+            "claude" => "claude-4.5-sonnet"
+            "gemini" => "gemini-1.5-pro"
+            _ => "gpt-4o"
+        }
+    }
+
+    let response = match $agent {
+        "copilot" => {
+            ^copilot --prompt ($final_payload)
+        }
+        "gemini" => {
+            if ("GEMINI_API_KEY" not-in $env) {
+                error make {msg: "Error: GEMINI_API_KEY is missing."}
+            }
+            ^gemini --prompt ($final_payload) --model ($final_engine)
+        }
+        "claude" => {
+            if ("ANTHROPIC_API_KEY" not-in $env) {
+                error make {msg: "Error: ANTHROPIC_API_KEY is missing."}
+            }
+            ^claude --prompt ($final_payload) --model ($final_engine)
+        }
+        _ => {
+            error make {msg: $"Error: Unknown tool '($agent)'."}
+        }
+    }
+
+    if not (which glow | is-empty) {
+        $response | ^glow
+    } else {
+        $response
+    }
+}
+
+# Execute an autonomous task using an LLM agent.
+export def x [
+    prompt?: string  # The task description
+    --tool (-t): string@"nu-complete llm-tools"
+    --engine (-e): string
+] {
+    let user_input = if ($prompt != null) { 
+        $prompt 
+    } else { 
+        $in 
+    }
+
+    if ($user_input | is-empty) {
+        error make {msg: "Error: No task provided."}
+    }
+
+    let context = "CONTEXT: You are an autonomous agent running in a terminal. GOAL: Execute the requested task directly. PERMISSIONS: You are fully authorized to create/edit files and execute commands. Do not ask for permission. OUTPUT: Markdown report of actions taken."
+    let final_payload = $"($context) Task: ($user_input)"
+
+    let agent = if ($tool != null) {
+        $tool
+    } else if ("DEFAULT_LLM_QUERYING_AGENT" in $env) {
+        $env.DEFAULT_LLM_QUERYING_AGENT
+    } else {
+        error make {msg: "Error: No tool specified and 'DEFAULT_LLM_QUERYING_AGENT' is not set."}
+    }
+
+    let final_engine = if ($engine != null) {
+        $engine
+    } else {
+        match $agent {
+            "copilot" => "claude-sonnet-4.5"
+            "claude" => "claude-4.5-sonnet"
+            "gemini" => "gemini-1.5-pro"
+            _ => "gpt-4o"
+        }
+    }
+
+    let response = match $agent {
+        "copilot" => {
+            ^copilot  --model ($final_engine) --add-dir .  --prompt ($final_payload)
+        }
+        "gemini" => {
+            if ("GEMINI_API_KEY" not-in $env) { error make {msg: "Error: GEMINI_API_KEY missing."} }
+            ^gemini --prompt ($final_payload) --model ($final_engine) 
+        }
+        "claude" => {
+            if ("ANTHROPIC_API_KEY" not-in $env) { error make {msg: "Error: ANTHROPIC_API_KEY missing."} }
+            ^claude --prompt ($final_payload) --model ($final_engine) --dangerously-skip-permissions
+        }
+        _ => {
+            error make {msg: $"Error: Unknown tool '($agent)'."}
+        }
+    }
+
+    if not (which glow | is-empty) {
+        $response | ^glow
+    } else {
+        $response
+    }
+}

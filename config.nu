@@ -3,10 +3,18 @@ source ~/.cache/starship/init.nu
 
 
 # --- OS-specific modules ------------------------------------------------------
-use lib/windows.nu *
+if ([$nu.default-config-dir, 'lib/windows.nu'] | path join | path exists) {
+    source-env ([$nu.default-config-dir, 'lib/windows.nu'] | path join)
+}
 
 # --- Modules ------------------------------------------------------------------
-use lib/work.nu
+if ([$nu.default-config-dir, 'lib/secrets.nu'] | path join | path exists) {
+    source-env ([$nu.default-config-dir, 'lib/secrets.nu'] | path join)
+}
+
+if ([$nu.default-config-dir, 'lib/work.nu'] | path join | path exists) {
+    source-env ([$nu.default-config-dir, 'lib/work.nu'] | path join)
+}
 
 use lib/llm.nu *
 use lib/naz.nu

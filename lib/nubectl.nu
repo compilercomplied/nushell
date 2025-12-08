@@ -41,10 +41,11 @@ export def pods [
     let filter_namespace = $namespace != "all"
     let target_namespace = if $namespace == "all" { ["-A"] } else { ["-n" $namespace] }
     
-    let result_table = ^kubectl get pods ...$target_namespace -o go-template='{{range .items}}{{.metadata.namespace}}{{"»¦«"}}{{.metadata.name}}{{"»¦«"}}{{.status.phase}}{{"»¦«"}}{{.spec.nodeName}}{{"»¦«"}}{{.status.podIP}}{{"\n"}}{{end}}'
+    let result_table = ^kubectl get pods ...$target_namespace -o go-template='{{range .items}}{{.metadata.namespace}}{{"»¦«"}}{{.metadata.name}}{{"»¦«"}}{{.status.phase}}{{"»¦«"}}{{.spec.nodeName}}{{"»¦«"}}{{.status.podIP}}{{"»¦«"}}{{.metadata.creationTimestamp}}{{"\n"}}{{end}}'
     | lines
     | skip 1
-    | parse "{Namespace}»¦«{Name}»¦«{Status}»¦«{Node}»¦«{IP}"
+    | parse "{Namespace}»¦«{Name}»¦«{Status}»¦«{Node}»¦«{IP}»¦«{CreationTimestamp}"
+    | reject IP
     | sort-by Namespace Name
 
     if $filter_namespace {

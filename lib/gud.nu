@@ -26,12 +26,23 @@ export def "pull" [] {
 
 # Complete feature development by switching to main branch and cleaning up.
 export def "finish-feature" [
-  main?: string # Main branch name (defaults to 'master')
+  main?: string # Main branch name (auto-inferred if not provided)
 ] {
   let mainBranch = (
-		if ($main == null) { "master" } 
-		else { $main }
-
+		if ($main == null) {
+			let branches = (git branch --list | lines | str substring 2.. | str trim)
+			if ("main" in $branches) {
+				"main"
+			} else if ("master" in $branches) {
+				"master"
+			} else if ("trunk" in $branches) {
+				"trunk"
+			} else {
+				"master"
+			}
+		} else {
+			$main
+		}
   )
   git checkout $mainBranch
   git fetch --prune

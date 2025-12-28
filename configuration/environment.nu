@@ -2,8 +2,8 @@
 # Optional environment files
 # ##############################################################################
 # --- OS-specific modules ---
-source-env (if ([$nu.default-config-dir, 'lib/windows.nu'] | path join | path exists) {
-    [$nu.default-config-dir, 'lib/windows.nu'] | path join
+source-env (if ($nu.os-info.name == 'windows' and ([$nu.default-config-dir, 'host/windows.nu'] | path join | path exists)) {
+    [$nu.default-config-dir, 'host/windows.nu'] | path join
 } else { null })
 
 # --- Environment Modules ---

@@ -1,5 +1,5 @@
-lib/work.nu
-lib/secrets.nu
+env/work.nu
+env/secrets.nu
 history.txt
 env.nu
 plan.md

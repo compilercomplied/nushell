@@ -8,17 +8,18 @@ if ([$nu.default-config-dir, 'lib/windows.nu'] | path join | path exists) {
 }
 
 # --- Modules ------------------------------------------------------------------
-if ([$nu.default-config-dir, 'lib/secrets.nu'] | path join | path exists) {
-    source-env ([$nu.default-config-dir, 'lib/secrets.nu'] | path join)
+if ([$nu.default-config-dir, 'env/secrets.nu'] | path join | path exists) {
+    source-env ([$nu.default-config-dir, 'env/secrets.nu'] | path join)
 }
 
-if ([$nu.default-config-dir, 'lib/work.nu'] | path join | path exists) {
-    source-env ([$nu.default-config-dir, 'lib/work.nu'] | path join)
+if ([$nu.default-config-dir, 'env/work.nu'] | path join | path exists) {
+    source-env ([$nu.default-config-dir, 'env/work.nu'] | path join)
 }
 
-use lib/llm.nu *
-use lib/naz.nu
-use lib/gud.nu
-use lib/nocker.nu
-use lib/nubectl.nu
-use lib/db.nu
+use wrappers/naz.nu
+use wrappers/nit.nu
+use wrappers/nocker.nu
+use wrappers/nubectl.nu
+
+use commands/llm.nu *
+use commands/db.nu

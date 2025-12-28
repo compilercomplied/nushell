@@ -4,7 +4,7 @@ export def "clean-features" [] {
     | lines --skip-empty
     | str substring 2.. 
     | where $it != 'master'
-	| where $it != 'main'
+		| where $it != 'main'
     | each { |it| git branch -D $it }
 }
 
@@ -22,6 +22,18 @@ export def "log" [
 export def "pull" [] {
   git fetch --prune
   git pull
+}
+
+# Discard all staged and unstaged changes.
+export def "discard" [] {
+	git reset --hard
+}
+
+# Create new feature branch.
+export def "branch-feature" [
+	branchName: string # Branch name
+] {
+	git checkout -b $branchName
 }
 
 # Complete feature development by switching to main branch and cleaning up.

@@ -4,7 +4,7 @@ $env.config = { show_banner: false }
 source ~/.cache/starship/init.nu
 
 # Configure secrets
-source-env configuration/environment.nu
+source-env ([$nu.default-config-dir, 'configuration/environment.nu'] | path join)
 
 # Load shell functions
 use wrappers/naz.nu

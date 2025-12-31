@@ -9,17 +9,15 @@ export def init [
 	validate-tool-exists "pulumi"
 
 	let projectName = get-git-repo-name
-	# Pulumi uses this environment variable to set the passphrase instead of 
-	# setting it as part of the CLI args.
-	# Nushell scopes this to the function, so it won't pollute the environment.
-	$env.PULUMI_CONFIG_PASSPHRASE = $passphrase
 
-	(pulumi new typescript
-		--yes														# Use empty description and other defaults.
-		--dir iac												# Target directory.
-		--secrets-provider passphrase		# Local passphrase encryption.
-		--stack local
-		--stack prod
-		--name $projectName
-	)
+	with-env { PULUMI_CONFIG_PASSPHRASE: $passphrase } {
+		(pulumi new typescript
+			--yes														# Empty description and other defaults.
+			--dir iac												# Target directory.
+			--secrets-provider passphrase		# Local passphrase encryption.
+			--stack local
+			--stack prod
+			--name $projectName
+		)
+	}
 }

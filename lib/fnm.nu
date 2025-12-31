@@ -1,5 +1,5 @@
 
-export def bootstrap-fnm-env [] {
+export def bootstrap-fnm-env []: nothing -> record {
 		mut env_vars = {}
 		let pwsh_vars = (
 				^fnm env --shell power-shell | 

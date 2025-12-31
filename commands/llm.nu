@@ -1,7 +1,11 @@
 export def q [prompt: string] {
-    let url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+
+    let url = "https://generativelanguage.googleapis.com/v1beta/models"
+			+ "/gemini-2.0-flash:generateContent"
     
-    let context = "CONTEXT: You are a CLI assistant running in a terminal. OUTPUT: Markdown. STYLE: Extremely brief, concise, and direct. No filler."
+    let context = "CONTEXT: You are a CLI assistant running in a terminal. "
+		+ "OUTPUT: Markdown. "
+		+ "STYLE: Extremely brief, concise, and direct. No filler."
 
     let body = {
         contents: [{

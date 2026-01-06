@@ -1,5 +1,9 @@
 export def q [prompt: string] {
 
+    if ($env.GEMINI_API_KEY? | is-empty) {
+        error make { msg: "GEMINI_API_KEY environment variable is not set." }
+    }
+
     let url = ("https://generativelanguage.googleapis.com/v1beta/models"
 			+ "/gemini-2.0-flash:generateContent")
     

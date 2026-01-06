@@ -14,7 +14,7 @@ $env.NU_LIB_DIRS = ($env.NU_LIB_DIRS?
 $env.config = { show_banner: false }
 source ~/.cache/starship/init.nu
 
-# Configure secrets
+# Configure environment
 source-env (
 	[$nu.default-config-dir, 'configuration/environment.nu'] | path join
 )

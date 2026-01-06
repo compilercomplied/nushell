@@ -21,6 +21,8 @@ source-env (if ([$nu.default-config-dir, 'env/work.nu'] | path join | path exist
 	[$nu.default-config-dir, 'env/work.nu'] | path join
 } else { null })
 
+source-env ([$nu.default-config-dir, 'host/system.nu'] | path join)
+
 export-env {
 	if not (which fnm | is-empty) {
 

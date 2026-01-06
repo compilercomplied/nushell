@@ -10,6 +10,12 @@ source-env (if ($nu.os-info.name == 'windows' and ([$nu.default-config-dir, 'hos
 source-env (if ([$nu.default-config-dir, 'env/secrets.nu'] | path join | path exists) {
 	[$nu.default-config-dir, 'env/secrets.nu'] | path join
 } else { null })
+# We double check here `env/secrets.nu` because we can't log inside source-env
+# due to nushell's parse-time checks.
+if (not ([$nu.default-config-dir, 'env/secrets.nu'] | path join | path exists)) {
+	use logger.nu log
+	log warn --without-timestamp "`env/secrets.nu` not present"
+}
 
 source-env (if ([$nu.default-config-dir, 'env/work.nu'] | path join | path exists) {
 	[$nu.default-config-dir, 'env/work.nu'] | path join

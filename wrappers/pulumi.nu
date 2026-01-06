@@ -1,5 +1,5 @@
 use host.nu validate-tool-exists
-use git.nu get-git-repo-name
+use git_lib.nu get-git-repo-name
 
 def _get-iac-path []: nothing -> string { return ($env.PWD | path join "iac") }
 def _get-iac-envs []: nothing -> list<string> { return [ "local" "prod" ] }

@@ -19,12 +19,6 @@ source-env (
 	[$nu.default-config-dir, 'configuration/environment.nu'] | path join
 )
 
-# Load shell functions
-use wrappers/naz.nu
-use wrappers/nit.nu
-use wrappers/nocker.nu
-use wrappers/nubectl.nu
-use wrappers/nulumi.nu
-
+use wrappers/mod.nu *
 use commands/llm.nu *
 use commands/db.nu

@@ -1,3 +1,4 @@
+
 # Purge all local branches except for main and master.
 export def "clean-features" [] {
   git branch --list 
@@ -12,7 +13,7 @@ export def "clean-features" [] {
 export def "log" [
 	lines: int = 10  # Number of commits to display (default: 10)
 ] {
-	git log --pretty=%h»¦«%al»¦«%s»¦«%ah
+	^git log --pretty=%h»¦«%al»¦«%s»¦«%ah
 		| lines
 		| split column "»¦«" sha1 committer desc merged_at
 		| first $lines
@@ -21,7 +22,7 @@ export def "log" [
 # Fetch with pruning and pull changes to current branch.
 export def "pull" [] {
   git fetch --prune
-  git pull
+  ^git pull
 }
 
 # Discard all staged and unstaged changes.
@@ -57,7 +58,6 @@ export def "finish-feature" [
 		}
   )
   git checkout $mainBranch
-  git fetch --prune
   git pull
   clean-features
 
@@ -78,7 +78,6 @@ export def "merge-master" [
   )
 
   git checkout $mainBranch
-  git fetch
   git pull
   git checkout $currentBranch
   git merge $mainBranch
@@ -105,6 +104,6 @@ export def "branches local" [] {
 export def "push" [
   message?: string = "update remote" # Commit message (default: 'update remote')
 ] {
-	git add .; git commit -m $message; git push
+	git add .; git commit -m $message; ^git push
 }
 

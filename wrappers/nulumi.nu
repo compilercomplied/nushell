@@ -1,5 +1,5 @@
-use ../lib/host.nu validate-tool-exists
-use ../lib/git.nu get-git-repo-name
+use host.nu validate-tool-exists
+use git.nu get-git-repo-name
 
 def _get-iac-path []: nothing -> string { return ($env.PWD | path join "iac") }
 def _get-iac-envs []: nothing -> list<string> { return [ "local" "prod" ] }
@@ -35,6 +35,12 @@ export def init [
 export def prune [passphrase: string] {
 	let environments = _get-iac-envs
 	let iac_path: string = _get-iac-path
+
+	if not ($iac_path | path exists) {
+		error make { msg: $"IaC directory '($iac_path)' does not exist" }
+		return
+	}
+
 	let project_name = get-git-repo-name
 
 	with-env { PULUMI_CONFIG_PASSPHRASE: $passphrase } {

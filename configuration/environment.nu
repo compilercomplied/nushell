@@ -21,6 +21,17 @@ source-env (if ([$nu.default-config-dir, 'env/work.nu'] | path join | path exist
 	[$nu.default-config-dir, 'env/work.nu'] | path join
 } else { null })
 
+if not (which mise | is-empty) {
+	let mise_file = ([$nu.default-config-dir, 'env/mise.nu'] | path join)
+	if not ($mise_file | path exists) {
+		^mise activate nu | save -f $mise_file
+	}
+}
+
+source-env (if ([$nu.default-config-dir, 'env/mise.nu'] | path join | path exists) {
+	[$nu.default-config-dir, 'env/mise.nu'] | path join
+} else { null })
+
 source-env ([$nu.default-config-dir, 'host/system.nu'] | path join)
 
 export-env {

@@ -1,0 +1,17 @@
+[user]
+	email = 8614035+compilercomplied@users.noreply.github.com
+	name = compilercomplied
+[push]
+	# let's you say just `git push origin` to push the current branch
+	default = current 
+[color]
+    ui = true
+[diff]
+	tool = nvim
+[difftool]
+	prompt = false
+[core]
+	editor = vim
+	excludesfile = ~/.gitignore_global
+[merge]
+	tool = nvim

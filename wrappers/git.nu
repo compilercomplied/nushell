@@ -100,10 +100,14 @@ export def "branches local" [] {
 		| split column '»¦«' name author subject date
 }
 
-# Quick workflow: stage all changes, commit, and push to remote.
+# Push on stereoids; optionally stage `.` and push.
 export def "push" [
-  message?: string = "update remote" # Commit message (default: 'update remote')
+  message?: string # Commit message (omitting triggers ^git push)
 ] {
-	git add .; git commit -m $message; ^git push
+  if ($message != null) {
+    git add .
+    git commit -m $message
+  }
+  ^git push
 }
 

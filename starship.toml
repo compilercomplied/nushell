@@ -22,3 +22,8 @@ style = 'blue'
 
 [container]
 disabled = true
+
+[mise]
+disabled = false
+healthy_symbol = "🌱"
+unhealthy_symbol = "❌"

@@ -1,3 +1,4 @@
+use ../lib/logger.nu
 
 # Purge all local branches except for main and master.
 export def "clean-features" [] {
@@ -111,3 +112,16 @@ export def "push" [
   ^git push
 }
 
+# Initialize a new git repository and add a default remote.
+export def "init" [
+  ...args: string # Arguments to pass to git init
+] {
+  ^git init ...$args
+  let repo_name = ($env.PWD | path basename)
+  let remote_url = $"git@github.com:compilercomplied/($repo_name).git"
+  try {
+    ^git remote add origin $remote_url
+  } catch { |err|
+    logger log warn --without-timestamp $"Failed to add remote: ($err.msg)"
+  }
+}

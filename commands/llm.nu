@@ -33,7 +33,7 @@ def call_gemini [prompt: string] {
 
     let body = {
         contents: [{
-            parts: [{ text: "($context)\n\n($prompt)" }]
+            parts: [{ text: $"($context)\n\n($prompt)" }]
         }]
     }
 

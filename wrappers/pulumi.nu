@@ -1,6 +1,36 @@
 use host.nu validate-tool-exists
 use git_lib.nu get-git-repo-name
 
+
+export def --wrapped main [...args] {
+	# Attempt to resolve passphrase config using a specific approach to secrets
+	# management. The expectation is that a secrets repo is cloned to
+	# `$HOME/secrets` and that this secrets repo has the following structure:
+	# └─── projects
+	# 	 ├── $project-name-1
+	# 	 │   ├── .env
+	# 	 │   └── pulumi-passphrase.txt
+	# 	 └─── $project-name-2
+	# 			 ├── .env
+	# 			 └── pulumi-passphrase.tx
+	# Where `$project-name` is just the git repo name on the remote.
+	let project_name = try { get-git-repo-name } catch { null }
+	let secret_file = if $project_name != null {
+		($env.HOME | path join "secrets" "projects" $project_name "pulumi-passphrase.txt")
+	} else {
+		null
+	}
+
+	if ($secret_file != null) and ($secret_file | path exists) {
+		let passphrase = (open $secret_file | str trim)
+		with-env { PULUMI_CONFIG_PASSPHRASE: $passphrase } {
+			^pulumi -C iac ...$args
+		}
+	} else {
+		^pulumi -C iac ...$args
+	}
+}
+
 def _get-iac-path []: nothing -> string { return ($env.PWD | path join "iac") }
 def _get-iac-envs []: nothing -> list<string> { return [ "local" "prod" ] }
 

@@ -33,16 +33,39 @@ def "nu-complete k8s-namespaces" [] {
     ["all"] | append $namespaces
 }
 
-# Pretty print events ordered by pod then by timestamp.
+# Pretty print events ordered by timestamp (newest first).
 export def events [ 
     namespace: string@"nu-complete k8s-namespaces" = "all" # target namespace, defaults to all namespaces
 ] {
-    let target_namespace = if $namespace == "all" { ["-A"] } else { ["-n" $namespace] }
+    let filter_namespace = $namespace != "all"
+    let target_namespace = if $namespace == "all" {
+			["-A"]
+		} else { ["-n" $namespace] }
     
-    ^kubectl get events ...$target_namespace --field-selector involvedObject.kind=Pod --sort-by=.involvedObject.name -o go-template='{{range .items}}{{.lastTimestamp}}{"»¦«"}}{{.type}}{"»¦«"}}{{.reason}}{"»¦«"}}{{.involvedObject.name}}{"»¦«"}}{{.message}}{"\n"}}{{end}}'
-    | lines
-    | skip 1
-    | parse "{Time}»¦«{Type}»¦«{Reason}»¦«{Pod}»¦«{Message}"
+    let items = (
+			^kubectl get events ...$target_namespace -o json | from json | get items
+		)
+
+    if ($items | is-empty) {
+        return []
+    }
+
+    let result_table = ($items | each {|e| 
+        {
+            Namespace: $e.metadata.namespace
+            LastSeen: ($e.lastTimestamp? | default $e.eventTime?)
+            Type: $e.type
+            Reason: $e.reason
+            Object: $"($e.involvedObject.kind)/($e.involvedObject.name)"
+            Message: $e.message
+        }
+    } | sort-by LastSeen | reverse)
+
+    if $filter_namespace {
+        $result_table | reject Namespace
+    } else {
+        $result_table
+    }
 }
 
 # List pods.

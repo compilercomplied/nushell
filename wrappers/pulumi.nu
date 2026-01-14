@@ -1,8 +1,8 @@
-use host.nu validate-tool-exists
+use host.nu *
 use git_lib.nu get-git-repo-name
 
 
-export def --wrapped main [...args] {
+def _get-passphrase [] {
 	# Attempt to resolve passphrase config using a specific approach to secrets
 	# management. The expectation is that a secrets repo is cloned to
 	# `$HOME/secrets` and that this secrets repo has the following structure:
@@ -22,7 +22,18 @@ export def --wrapped main [...args] {
 	}
 
 	if ($secret_file != null) and ($secret_file | path exists) {
-		let passphrase = (open $secret_file | str trim)
+		print "Using inferred pulumi passphrase"
+		open $secret_file | str trim
+	} else {
+		print "No pulumi passphrase was detected for this project"
+		null
+	}
+}
+
+export def --wrapped main [...args] {
+	let passphrase = _get-passphrase
+
+	if $passphrase != null {
 		with-env { PULUMI_CONFIG_PASSPHRASE: $passphrase } {
 			^pulumi -C iac ...$args
 		}
@@ -31,8 +42,31 @@ export def --wrapped main [...args] {
 	}
 }
 
-def _get-iac-path []: nothing -> string { return ($env.PWD | path join "iac") }
+def _get-iac-path []: nothing -> string {
+	let path = ($env.PWD | path join "iac")
+	validate-path-exists $path
+	return $path
+}
 def _get-iac-envs []: nothing -> list<string> { return [ "local" "prod" ] }
+
+# Load configuration and secrets from the 'local' stack into the shell environment.
+export def --env local-env [] {
+	let iac_path = _get-iac-path
+
+	let output = main config --stack local --show-secrets --json | from json
+
+	let configs = ($output | values | where secret == false | length)
+	let secrets = ($output | values | where secret == true | length)
+
+	let env_vars = ($output
+		| transpose key data
+		| each {|it| { ($it.key | split row ":" | last): $it.data.value } }
+		| reduce --fold {} {|it, acc| $acc | merge $it }
+	)
+
+	$env_vars | load-env
+	print $"Loaded ($configs) config values and ($secrets) secrets"
+}
 
 # Wrapper over `pulumi new` with project defaults.
 export def init [
@@ -46,18 +80,16 @@ export def init [
 
 	let project_name = get-git-repo-name
 
-	with-env { PULUMI_CONFIG_PASSPHRASE: $passphrase } {
-		(pulumi new typescript
-			--yes														# Empty description and other defaults.
-			--secrets-provider passphrase		# Local passphrase encryption.
-			--stack local
-			--dir $iac_path
-			--name $project_name
-		)
+	(pulumi new typescript
+		--yes														# Empty description and other defaults.
+		--secrets-provider passphrase		# Local passphrase encryption.
+		--stack local
+		--dir $iac_path
+		--name $project_name
+	)
 
-		for environment in $environments {
-			pulumi -C $iac_path stack init $environment --secrets-provider passphrase
-		}
+	for environment in $environments {
+			main stack init $environment --secrets-provider passphrase
 	}
 }
 
@@ -66,21 +98,14 @@ export def prune [passphrase: string] {
 	let environments = _get-iac-envs
 	let iac_path: string = _get-iac-path
 
-	if not ($iac_path | path exists) {
-		error make { msg: $"IaC directory '($iac_path)' does not exist" }
-		return
-	}
-
 	let project_name = get-git-repo-name
 
-	with-env { PULUMI_CONFIG_PASSPHRASE: $passphrase } {
-		pulumi -C $iac_path destroy --yes
+	main destroy --yes
 
-		for environment in $environments {
-			pulumi -C $iac_path stack rm $environment --yes
-		}
-
-		print "Removing iac directory"
-		rm -rf $iac_path
+	for environment in $environments {
+		main stack rm $environment --yes
 	}
+
+	print "Removing iac directory"
+	rm -rf $iac_path
 }

@@ -70,23 +70,27 @@ export def --env local-env [] {
 
 # Wrapper over `pulumi new` with project defaults.
 export def init [
-	passphrase: string # Used to setup encryption local to the repo.
 ]: nothing -> nothing {
 	# Skip 'local'; it is created with the first command.
 	let environments = (_get-iac-envs | skip 1) 
-	let iac_path: string = _get-iac-path
+	let passphrase: string = _get-passphrase
 
 	validate-tool-exists "pulumi"
 
 	let project_name = get-git-repo-name
 
-	(pulumi new typescript
-		--yes														# Empty description and other defaults.
-		--secrets-provider passphrase		# Local passphrase encryption.
-		--stack local
-		--dir $iac_path
-		--name $project_name
-	)
+	# Wrap with environment since we can't rely on executing `main` and we
+	# have to execute the bin directly. This is because `main` checks `iac`dir,
+	# but this command is executed *before* the iac dir exists.
+	with-env { PULUMI_CONFIG_PASSPHRASE: $passphrase } {
+		(pulumi new typescript
+			--yes														# Empty description and other defaults.
+			--secrets-provider passphrase		# Local passphrase encryption.
+			--stack local
+			--dir "iac"
+			--name $project_name
+		)
+	}
 
 	for environment in $environments {
 			main stack init $environment --secrets-provider passphrase
@@ -94,7 +98,7 @@ export def init [
 }
 
 # Remove all configuration and resources associated with the project.
-export def prune [passphrase: string] {
+export def prune [] {
 	let environments = _get-iac-envs
 	let iac_path: string = _get-iac-path
 

@@ -70,42 +70,68 @@ export def events [
 
 # List pods.
 export def pods [
-    namespace: string@"nu-complete k8s-namespaces" = "all" # target namespace, defaults to all namespaces
+    namespace?: string@"nu-complete k8s-namespaces" = "all" # target namespace, defaults to current namespace. Use 'all' for all namespaces.
 ] {
-    let filter_namespace = $namespace != "all"
-    let target_namespace = if $namespace == "all" { ["-A"] } else { ["-n" $namespace] }
+    let show_namespace = $namespace == "all"
+    let target_namespace = if $namespace == "all" { ["-A"] } else if ($namespace | is-empty) { [] } else { ["-n" $namespace] }
     
-    let result_table = ^kubectl get pods ...$target_namespace -o go-template='{{range .items}}{{.metadata.namespace}}{"»¦«"}}{{.metadata.name}}{"»¦«"}}{{.status.phase}}{"»¦«"}}{{.spec.nodeName}}{"»¦«"}}{{.status.podIP}}{"»¦«"}}{{.metadata.creationTimestamp}}{"\n"}}{{end}}'
-    | lines
-    | skip 1
-    | parse "{Namespace}»¦«{Name}»¦«{Status}»¦«{Node}»¦«{IP}»¦«{CreationTimestamp}"
-    | reject IP
-    | sort-by Namespace Name
+    let items = (
+        ^kubectl get pods ...$target_namespace -o json | from json | get items
+    )
 
-    if $filter_namespace {
-        $result_table | reject Namespace
-    } else {
+    if ($items | is-empty) {
+        return []
+    }
+
+    let result_table = ($items | each {|p|
+        {
+            Namespace: $p.metadata.namespace
+            Name: $p.metadata.name
+            Status: $p.status.phase
+            Node: ($p.spec.nodeName? | default "N/A")
+            IP: ($p.status.podIP? | default "N/A")
+            CreationTimestamp: $p.metadata.creationTimestamp
+        }
+    } | reject IP | sort-by Namespace Name)
+
+    if $show_namespace {
         $result_table
+    } else {
+        $result_table | reject Namespace
     }
 }
 
 # List deployments.
 export def deployments [
-    namespace: string@"nu-complete k8s-namespaces" = "all" # target namespace, defaults to all namespaces
+    namespace?: string@"nu-complete k8s-namespaces" = "all" # target namespace, defaults to current namespace. Use 'all' for all namespaces.
 ] {
-    let filter_namespace = $namespace != "all"
-    let target_namespace = if $namespace == "all" { ["-A"] } else { ["-n" $namespace] }
+    let show_namespace = $namespace == "all"
+    let target_namespace = if $namespace == "all" { ["-A"] } else if ($namespace | is-empty) { [] } else { ["-n" $namespace] }
     
-    let result_table = ^kubectl get deployments ...$target_namespace -o go-template='{{range .items}}{{.metadata.namespace}}{"»¦«"}}{{.metadata.name}}{"»¦«"}}{{.spec.replicas}}{"»¦«"}}{{.status.replicas}}{"»¦«"}}{{.status.updatedReplicas}}{"»¦«"}}{{.status.availableReplicas}}{"\n"}}{{end}}'
-    | lines
-    | skip 1
-    | parse "{Namespace}»¦«{Name}»¦«{Desired}»¦«{Current}»¦«{Updated}»¦«{Available}"
-    | sort-by Namespace Name
+    let items = (
+        ^kubectl get deployments ...$target_namespace -o json | from json | get items
+    )
 
-    if $filter_namespace {
-        $result_table | reject Namespace
-    } else {
+    if ($items | is-empty) {
+        return []
+    }
+
+    let result_table = ($items | each {|d|
+        {
+            Namespace: $d.metadata.namespace
+            Name: $d.metadata.name
+            Desired: ($d.spec.replicas? | default 0)
+            Current: ($d.status.replicas? | default 0)
+            Updated: ($d.status.updatedReplicas? | default 0)
+            Available: ($d.status.availableReplicas? | default 0)
+            CreationTimestamp: $d.metadata.creationTimestamp
+        }
+    } | sort-by Namespace Name)
+
+    if $show_namespace {
         $result_table
+    } else {
+        $result_table | reject Namespace
     }
 }
 

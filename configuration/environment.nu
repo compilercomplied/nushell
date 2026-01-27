@@ -21,8 +21,8 @@ source-env (if ([$nu.default-config-dir, 'env/work.nu'] | path join | path exist
 	[$nu.default-config-dir, 'env/work.nu'] | path join
 } else { null })
 
-source-env (if ([$nu.home-path, '.zoxide.nu'] | path join | path exists) {
-	[$nu.home-path, '.zoxide.nu'] | path join
+source-env (if ([$nu.home-dir, '.zoxide.nu'] | path join | path exists) {
+	[$nu.home-dir, '.zoxide.nu'] | path join
 } else { null })
 
 if not (which mise | is-empty) {

@@ -22,10 +22,10 @@ def _get-passphrase [] {
 	}
 
 	if ($secret_file != null) and ($secret_file | path exists) {
-		print "Using inferred pulumi passphrase"
+		print -e "Using inferred pulumi passphrase"
 		open $secret_file | str trim
 	} else {
-		print "No pulumi passphrase was detected for this project"
+		print -e "No pulumi passphrase was detected for this project"
 		null
 	}
 }
@@ -53,7 +53,14 @@ def _get-iac-envs []: nothing -> list<string> { return [ "local" "prod" ] }
 export def --env local-env [] {
 	let iac_path = _get-iac-path
 
-	let output = main config --stack local --show-secrets --json | from json
+	let result = do { main config --stack local --show-secrets --json } | complete
+
+	if $result.exit_code != 0 {
+		print -e $"Error loading pulumi config: ($result.stderr)"
+		return
+	}
+
+	let output = $result.stdout | from json
 
 	let configs = ($output | values | where secret == false | length)
 	let secrets = ($output | values | where secret == true | length)

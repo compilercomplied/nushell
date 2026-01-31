@@ -125,3 +125,23 @@ export def "init" [
     logger log warn --without-timestamp $"Failed to add remote: ($err.msg)"
   }
 }
+
+# Clone a repository and cd into it.
+export def --env clone [
+  repo: string      # The repository url
+  dir?: string      # Optional directory name
+] {
+
+	let target_dir = if ($dir != null) {
+		$dir
+  } else {
+		(
+			$repo | split row "/" | last | split row ":" | last
+			| str replace --regex '\.git$' ''
+		)
+	}
+
+	^git clone $repo $target_dir
+	print $"cd into '($target_dir)'"
+	cd $target_dir
+}

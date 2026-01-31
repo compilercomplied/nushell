@@ -6,20 +6,12 @@ def _get-passphrase [] {
 	# Attempt to resolve passphrase config using a specific approach to secrets
 	# management. The expectation is that a secrets repo is cloned to
 	# `$HOME/secrets` and that this secrets repo has the following structure:
-	# └─── projects
-	# 	 ├── $project-name-1
-	# 	 │   ├── .env
-	# 	 │   └── pulumi-passphrase.txt
-	# 	 └─── $project-name-2
-	# 			 ├── .env
-	# 			 └── pulumi-passphrase.tx
-	# Where `$project-name` is just the git repo name on the remote.
-	let project_name = try { get-git-repo-name } catch { null }
-	let secret_file = if $project_name != null {
-		($env.HOME | path join "secrets" "projects" $project_name "pulumi-passphrase.txt")
-	} else {
-		null
-	}
+	# secrets                             -> git repo root.
+	# └─── secrets                        -> subdir.
+	# 	     └── pulumi-passphrase.txt   .-> file with passphrase.
+	let secret_file = (
+		$env.HOME | path join "secrets" "secrets" "pulumi-passphrase.txt"
+	)
 
 	if ($secret_file != null) and ($secret_file | path exists) {
 		print -e "Using inferred pulumi passphrase"

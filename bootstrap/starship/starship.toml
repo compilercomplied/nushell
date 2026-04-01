@@ -20,6 +20,10 @@ style = 'blue'
 # [kubernetes.context_aliases]
 # 'very-long-dev-k8s-namespace'='dev'
 
+# This will hide 'via Orbstack' in macOS.
+[docker_context]
+disabled = true
+
 [container]
 disabled = true
 

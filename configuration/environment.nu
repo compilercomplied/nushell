@@ -6,6 +6,10 @@ source-env (if ($nu.os-info.name == 'windows' and ([$nu.default-config-dir, 'hos
 	[$nu.default-config-dir, 'host/windows.nu'] | path join
 } else { null })
 
+source-env (if ($nu.os-info.name == 'macos' and ([$nu.default-config-dir, 'host/macos.nu'] | path join | path exists)) {
+	[$nu.default-config-dir, 'host/macos.nu'] | path join
+} else { null })
+
 # --- Environment Modules ---
 source-env (if ([$nu.default-config-dir, 'env/secrets.nu'] | path join | path exists) {
 	[$nu.default-config-dir, 'env/secrets.nu'] | path join

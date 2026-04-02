@@ -52,12 +52,12 @@ export def events [
 
     let result_table = ($items | each {|e| 
         {
-            Namespace: $e.metadata.namespace
-            LastSeen: ($e.lastTimestamp? | default $e.eventTime?)
-            Type: $e.type
-            Reason: $e.reason
-            Object: $"($e.involvedObject.kind)/($e.involvedObject.name)"
-            Message: $e.message
+            Namespace: $e.metadata?.namespace?
+            LastSeen: ($e.lastTimestamp? | default $e.eventTime? | default "")
+            Type: $e.type?
+            Reason: $e.reason?
+            Object: $"($e.involvedObject?.kind?)/($e.involvedObject?.name?)"
+            Message: ($e.message? | default "")
         }
     } | sort-by LastSeen | reverse)
 
@@ -85,12 +85,12 @@ export def pods [
 
     let result_table = ($items | each {|p|
         {
-            Namespace: $p.metadata.namespace
-            Name: $p.metadata.name
-            Status: $p.status.phase
-            Node: ($p.spec.nodeName? | default "N/A")
-            IP: ($p.status.podIP? | default "N/A")
-            CreationTimestamp: $p.metadata.creationTimestamp
+            Namespace: $p.metadata?.namespace?
+            Name: $p.metadata?.name?
+            Status: $p.status?.phase?
+            Node: ($p.spec?.nodeName? | default "N/A")
+            IP: ($p.status?.podIP? | default "N/A")
+            CreationTimestamp: $p.metadata?.creationTimestamp?
         }
     } | reject IP | sort-by Namespace Name)
 
@@ -118,13 +118,13 @@ export def deployments [
 
     let result_table = ($items | each {|d|
         {
-            Namespace: $d.metadata.namespace
-            Name: $d.metadata.name
-            Desired: ($d.spec.replicas? | default 0)
-            Current: ($d.status.replicas? | default 0)
-            Updated: ($d.status.updatedReplicas? | default 0)
-            Available: ($d.status.availableReplicas? | default 0)
-            CreationTimestamp: $d.metadata.creationTimestamp
+            Namespace: $d.metadata?.namespace?
+            Name: $d.metadata?.name?
+            Desired: ($d.spec?.replicas? | default 0)
+            Current: ($d.status?.replicas? | default 0)
+            Updated: ($d.status?.updatedReplicas? | default 0)
+            Available: ($d.status?.availableReplicas? | default 0)
+            CreationTimestamp: $d.metadata?.creationTimestamp?
         }
     } | sort-by Namespace Name)
 

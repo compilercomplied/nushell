@@ -16,16 +16,16 @@ def "nu-complete system-hosts" [] {
 
 # Autocomplete for Kubernetes namespaces
 def "nu-complete k8s-namespaces" [] {
-    let cache_dir = ($nu.temp-path | path join "nubectl-cache")
+    let cache_dir = ($nu.temp-dir | path join "nubectl-cache")
     mkdir $cache_dir
     
-    let current_context = (^kubectl config current-context | str trim)
+    let current_context = (^kubectl config current-context | str trim | str replace --all "/" "-")
     let cache_file = ($cache_dir | path join $"namespaces-($current_context).txt")
     
     let namespaces = if ($cache_file | path exists) {
         open $cache_file | lines
     } else {
-        let ns = (^kubectl get namespaces -o jsonpath='{.items[*].metadata.name}' | split row ' ')
+        let ns = (^kubectl get namespaces -o jsonpath='{.items[*].metadata.name}' | split row ' ' | str trim)
         $ns | save -f $cache_file
         $ns
     }

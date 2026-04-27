@@ -113,12 +113,16 @@ export def "push" [
 }
 
 # Initialize a new git repository and add a default remote.
-export def "init" [
+export def --env "init" [
+  project_name: string # Project name; it will be used for the remote git and local dir.
   ...args: string # Arguments to pass to git init
 ] {
+  let target_dir = $"($nu.home-dir)/code/($project_name)"
+  mkdir $target_dir 
+  cd $target_dir
+
   ^git init ...$args
-  let repo_name = ($env.PWD | path basename)
-  let remote_url = $"git@github.com:compilercomplied/($repo_name).git"
+  let remote_url = $"git@github.com:compilercomplied/($target_dir).git"
   try {
     ^git remote add origin $remote_url
   } catch { |err|

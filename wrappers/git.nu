@@ -1,5 +1,16 @@
 use ../lib/logger.nu
 
+# Helper for git commit completion
+def "nu-complete git-commits" [] {
+  try {
+    ^git log -n 20 --pretty=%h»¦«%s
+      | lines
+      | split column "»¦«" value description
+  } catch {
+    []
+  }
+}
+
 # Purge all local branches except for main and master.
 export def "clean-features" [] {
   git branch --list 
@@ -148,4 +159,12 @@ export def --env clone [
 	^git clone $repo $target_dir
 	print $"cd into '($target_dir)'"
 	cd $target_dir
+}
+
+# Rebase the current branch onto a commit with a backtrack offset.
+export def "rebase" [
+  commit: string@"nu-complete git-commits" # The base commit
+  backtrack: int                            # Number of commits to go back from the selected commit
+] {
+  ^git rebase $"($commit)~($backtrack)"
 }

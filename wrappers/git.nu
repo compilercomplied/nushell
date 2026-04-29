@@ -164,7 +164,7 @@ export def --env clone [
 # Rebase the current branch onto a commit with a backtrack offset.
 export def "rebase" [
   commit: string@"nu-complete git-commits" # The base commit
-  backtrack: int                            # Number of commits to go back from the selected commit
+  backtrack: int                           # Number of commits to go back from the selected commit
 ] {
   ^git rebase $"($commit)~($backtrack)"
 }

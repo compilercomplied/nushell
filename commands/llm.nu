@@ -29,7 +29,7 @@ def call_gemini [prompt: string] {
     }
 
     let url = ("https://generativelanguage.googleapis.com/v1beta/models"
-			+ "/gemini-2.0-flash:generateContent")
+			+ "/gemini-3-flash-preview:generateContent")
 
     let body = {
         contents: [{

@@ -29,5 +29,14 @@ disabled = true
 
 [mise]
 disabled = false
-healthy_symbol = "🌱"
+healthy_symbol = ""
 unhealthy_symbol = "❌"
+
+[kotlin]
+disabled = true
+
+[java]
+disabled = true
+
+[gradle]
+disabled = true

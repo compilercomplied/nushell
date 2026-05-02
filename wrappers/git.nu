@@ -125,15 +125,28 @@ export def "push" [
 
 # Initialize a new git repository and add a default remote.
 export def --env "init" [
-  project_name: string # Project name; it will be used for the remote git and local dir.
+  project_name?: string # Project name; it will be used for the remote git and local dir.
   ...args: string # Arguments to pass to git init
 ] {
-  let target_dir = $"($nu.home-dir)/code/($project_name)"
-  mkdir $target_dir 
-  cd $target_dir
+  let is_flag = ($project_name != null and ($project_name | str starts-with "-"))
+  
+  let actual_project_name = if ($project_name == null or $is_flag) {
+    $env.PWD | path basename
+  } else {
+    let target_dir = ([$nu.home-dir "code" $project_name] | path join)
+    mkdir $target_dir 
+    cd $target_dir
+    $project_name
+  }
 
-  ^git init ...$args
-  let remote_url = $"git@github.com:compilercomplied/($target_dir).git"
+  let git_args = if $is_flag {
+    [$project_name] | append $args
+  } else {
+    $args
+  }
+
+  ^git init ...$git_args
+  let remote_url = $"git@github.com:compilercomplied/($actual_project_name).git"
   try {
     ^git remote add origin $remote_url
   } catch { |err|

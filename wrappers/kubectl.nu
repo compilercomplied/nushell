@@ -1,6 +1,6 @@
 # Autocomplete for Kubernetes object types
 def "nu-complete k8s-object-types" [] {
-    ["pod" "deployment"]
+    ["pod" "deployment" "namespace"]
 }
 
 # Autocomplete for system hosts (ending in .systems) from /etc/hosts
@@ -133,6 +133,25 @@ export def deployments [
     } else {
         $result_table | reject Namespace
     }
+}
+
+# List namespaces.
+export def namespaces [] {
+    let items = (
+        ^kubectl get namespaces -o json | from json | get items
+    )
+
+    if ($items | is-empty) {
+        return []
+    }
+
+    $items | each {|ns|
+        {
+            Name: $ns.metadata?.name?
+            Status: $ns.status?.phase?
+            CreationTimestamp: $ns.metadata?.creationTimestamp?
+        }
+    } | sort-by Name
 }
 
 # Describe a Kubernetes object.

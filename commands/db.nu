@@ -101,7 +101,7 @@ def build-mssql-args [config: record, query: string] {
 def build-pgsql-connection [config: record] {
     # Get password (either from config or Entra token)
     let password = if $config.auth_type == "entra" {
-        naz access-tokens pgsql
+        az access-tokens pgsql
     } else {
         $config.pass
     }

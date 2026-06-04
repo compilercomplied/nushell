@@ -8,6 +8,76 @@ def "nu-complete db resources" [] {
 	["pgsql" "mssql"]
 }
 
+# Get the list of resource groups considered "owned" by this profile.
+def "owned resource groups" [] {
+    let configured_resource_groups = ($env.resource_groups? | default [])
+    let cluster_resource_groups = (
+        $env.aks_clusters?
+        | default {}
+        | transpose alias config
+        | each { |it| $it.config.resource_group? }
+        | where { |rg| not (($rg | default "") | is-empty) }
+    )
+
+    $configured_resource_groups
+    | append $cluster_resource_groups
+    | uniq
+}
+
+# Resolve which subscription hosts the configured ACR.
+def "resolve acr subscription" [] {
+    if (($env.acr_subscription? | default "") | is-not-empty) {
+        return $env.acr_subscription
+    }
+
+    let current_subscription = (az account show --query id --output tsv)
+    let found_in_current = (do -i { az acr show --name $env.acr_name --subscription $current_subscription --query id --output tsv })
+
+    if not (($found_in_current | default "") | is-empty) {
+        return $current_subscription
+    }
+
+    let enabled_subscriptions = (
+        az account list --query "[?state=='Enabled'].id" --output tsv
+        | lines
+        | where { |it| not ($it | is-empty) }
+    )
+
+    let matching_subscriptions = (
+        $enabled_subscriptions
+        | where { |subscription|
+            let acr_id = (do -i { az acr show --name $env.acr_name --subscription $subscription --query id --output tsv })
+            not (($acr_id | default "") | is-empty)
+        }
+    )
+
+    if ($matching_subscriptions | is-empty) {
+        error make {msg: $"could not find ACR '($env.acr_name)' in any enabled subscription. Configure $env.acr_subscription explicitly in env/work.nu."}
+    }
+
+    if (($matching_subscriptions | length) > 1) {
+        error make {msg: $"ACR '($env.acr_name)' exists in multiple subscriptions: ($matching_subscriptions | str join ', '). Configure $env.acr_subscription explicitly in env/work.nu."}
+    }
+
+    $matching_subscriptions | first
+}
+
+# Resolve subscriptions that are relevant for daily work.
+def "owned subscriptions" [] {
+    let configured_subscriptions = (
+        $env.aks_clusters?
+        | default {}
+        | transpose alias config
+        | each { |it| $it.config.subscription? }
+        | where { |subscription| not (($subscription | default "") | is-empty) }
+    )
+
+    let current_subscription = (az account show --query id --output tsv)
+    [$current_subscription]
+    | append $configured_subscriptions
+    | uniq
+}
+
 # ==============================================================================
 # Azure Key Vault Operations
 # ==============================================================================
@@ -16,13 +86,34 @@ def "nu-complete db resources" [] {
 export def "keyvaults" [
 	--owned = true  # Filter to show only keyvaults in owned resource groups (from $env.resource_groups)
 ] {
-	let vaults = (az keyvault list --output json
-		| from json
-		| select name resourceGroup
-        | sort-by resourceGroup name)
+    let subscriptions = (owned subscriptions)
+	let vaults = (
+        $subscriptions
+        | each { |subscription|
+            let in_subscription = (do -i { az keyvault list --subscription $subscription --output json | from json })
+            if ($in_subscription | is-empty) {
+                []
+            } else {
+                $in_subscription | each { |vault|
+                    {
+                        name: $vault.name
+                        resourceGroup: $vault.resourceGroup
+                        subscription: $subscription
+                    }
+                }
+            }
+        }
+        | flatten
+        | sort-by subscription resourceGroup name
+    )
 	
 	if $owned {
-		$vaults | where resourceGroup in $env.resource_groups
+        let owned_groups = (owned resource groups)
+        if ($owned_groups | is-empty) {
+            $vaults
+        } else {
+		    $vaults | where resourceGroup in $owned_groups
+        }
 	} else {
 		$vaults
 	}
@@ -59,7 +150,7 @@ export def "aks login" [
     if ($cluster not-in $env.aks_clusters) {
         error make {msg: $"unknown cluster name: ($cluster). Valid options are: ($env.aks_clusters | columns | str join ', ')"}
     }
-    
+
     let config = $env.aks_clusters | get $cluster
     az aks get-credentials --name $config.name --resource-group $config.resource_group --subscription $config.subscription
 }
@@ -72,7 +163,8 @@ export def "aks login" [
 export def "acr repos" [
 	--owned  # Filter to show only repositories starting with 'language-tools'
 ] {
-	let repos = (az acr repository list --name $env.acr_name --output json | from json)
+    let subscription = (resolve acr subscription)
+	let repos = (az acr repository list --name $env.acr_name --subscription $subscription --output json | from json)
 	
 	if $owned {
 		$repos | where ($it | str starts-with language-tools) 
@@ -86,14 +178,16 @@ export def "acr tags" [
 	repository: string  # Name of the repository
 	--limit: int = 10   # Maximum number of tags to retrieve (default: 10)
 ] {
-	az acr repository show-tags --name $env.acr_name --repository $repository --detail --orderby time_desc --top $limit --output json
+    let subscription = (resolve acr subscription)
+	az acr repository show-tags --name $env.acr_name --subscription $subscription --repository $repository --detail --orderby time_desc --top $limit --output json
 		| from json 
 		| select name createdTime lastUpdateTime
 }
 
 # Authenticate Docker with Azure Container Registry.
 export def "acr login" [] {
-	let token = (az acr login --name $env.acr_name --expose-token --output json 
+    let subscription = (resolve acr subscription)
+	let token = (az acr login --name $env.acr_name --subscription $subscription --expose-token --output json 
 		| from json 
 		| get accessToken)
 	

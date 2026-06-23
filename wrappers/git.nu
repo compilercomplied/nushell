@@ -1,4 +1,43 @@
 use ../lib/logger.nu
+use ../lib/git_lib.nu [
+  git-default-branch-candidates
+  git-main-branch
+]
+use ../lib/git-worktree.nu [
+  git-create-feature-worktree
+  git-current-branch
+  git-current-worktree-path
+  git-feature-branches
+  git-feature-worktree-path
+  git-open-feature-worktree
+  git-primary-worktree-path
+  git-update-main-worktree
+  git-worktree-branches
+]
+
+# Helper for feature branch completion
+def "nu-complete git-features" [] {
+  let worktree_branches = (git-worktree-branches)
+
+  try {
+    git-feature-branches
+      | each { |branch|
+          let has_worktree = ($branch in $worktree_branches)
+          {
+            value: $branch,
+            description: (
+              if $has_worktree {
+                $"existing worktree at (git-feature-worktree-path $branch)"
+              } else {
+                "existing branch"
+              }
+            )
+          }
+        }
+  } catch {
+    []
+  }
+}
 
 # Helper for git commit completion
 def "nu-complete git-commits" [] {
@@ -11,14 +50,17 @@ def "nu-complete git-commits" [] {
   }
 }
 
-# Purge all local branches except for main and master.
+# Purge local branches that are neither default branches nor attached to a worktree.
 export def "clean-features" [] {
-  git branch --list 
+  let protected_branches = (
+    (git-default-branch-candidates) ++ (git-worktree-branches)
+  )
+
+  ^git branch --list --format='%(refname:short)'
     | lines --skip-empty
-    | str substring 2.. 
-    | where $it != 'master'
-		| where $it != 'main'
-    | each { |it| git branch -D $it }
+    | each { |it| $it | str trim }
+    | where { |it| ($it != "") and ($it not-in $protected_branches) }
+    | each { |it| ^git branch -d $it }
 }
 
 # Display a formatted git log with commit hash, author, message, and relative time.
@@ -42,59 +84,69 @@ export def "discard" [] {
 	git reset --hard
 }
 
-# Create new feature branch.
-export def "branch-feature" [
+# Create a new feature worktree from the default branch and cd into it.
+export def --env "branch-feature" [
 	branchName: string # Branch name
+  main?: string     # Main branch name (auto-inferred if not provided)
 ] {
-	git checkout -b $branchName
+  let mainBranch = (git-main-branch $main)
+  let worktreePath = (git-create-feature-worktree $branchName $mainBranch)
+  cd $worktreePath
 }
 
-# Complete feature development by switching to main branch and cleaning up.
-export def "finish-feature" [
+# Change to an existing feature worktree, or create it if missing.
+export def --env "change-feature" [
+  branchName: string@"nu-complete git-features" # Branch name
+  main?: string                                 # Main branch name (auto-inferred if not provided)
+] {
+  let mainBranch = (git-main-branch $main)
+  cd (git-open-feature-worktree $branchName $mainBranch)
+}
+
+# Complete feature development by removing the current feature worktree safely.
+export def --env "finish-feature" [
   main?: string # Main branch name (auto-inferred if not provided)
 ] {
-  let mainBranch = (
-		if ($main == null) {
-			let branches = (git branch --list | lines | str substring 2.. | str trim)
-			if ("main" in $branches) {
-				"main"
-			} else if ("master" in $branches) {
-				"master"
-			} else if ("trunk" in $branches) {
-				"trunk"
-			} else {
-				"master"
-			}
-		} else {
-			$main
-		}
-  )
-  git checkout $mainBranch
-  git pull
-  clean-features
+  let mainBranch = (git-main-branch $main)
+  let currentBranch = (git-current-branch)
+  let currentPath = (git-current-worktree-path)
+  let primaryPath = (git-primary-worktree-path)
+
+  if ($currentPath == $primaryPath) {
+    error make {
+      msg: $"finish-feature must be run from a feature worktree, not the primary ($mainBranch) worktree."
+    }
+  }
+
+  git-update-main-worktree $mainBranch
+
+  cd $primaryPath
+  ^git worktree remove $currentPath
+  ^git branch -d $currentBranch
 
 }
 
-# Merge main branch into current feature branch.
+# Merge the updated default branch into the current feature worktree.
 export def "merge-master" [
-  main?: string # Main branch name (defaults to 'master')
+  main?: string # Main branch name (auto-inferred if not provided)
 ] {
-  let mainBranch = (
-		if ($main == null) { "master" } 
-		else { $main }
+  let mainBranch = (git-main-branch $main)
+  let currentBranch = (git-current-branch)
+  let currentPath = (git-current-worktree-path)
+  let primaryPath = (git-primary-worktree-path)
 
-  )
+  if ($currentPath == $primaryPath) {
+    error make {
+      msg: $"merge-master must be run from a feature worktree, not the primary ($mainBranch) worktree."
+    }
+  }
 
-  let currentBranch = (
-    git status | lines | first 1 | to text | str substring (10..) | str trim
-  )
+  if ($currentBranch == $mainBranch) {
+    error make { msg: $"Already on the default branch: ($mainBranch)" }
+  }
 
-  git checkout $mainBranch
-  git pull
-  git checkout $currentBranch
-  git merge $mainBranch
-
-  ""
+  git-update-main-worktree $mainBranch
+  ^git merge $mainBranch
 }
 
 # List all remote branches with metadata.

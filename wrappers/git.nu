@@ -233,3 +233,14 @@ export def "rebase" [
 ] {
   ^git rebase $"($commit)~($backtrack)"
 }
+
+# Undo the last N commits while keeping their changes staged.
+export def "uncommit" [
+  count: int = 1 # Number of commits to uncommit
+] {
+  if $count < 1 {
+    error make { msg: "count must be at least 1" }
+  }
+
+  ^git reset --soft $"HEAD~($count)"
+}

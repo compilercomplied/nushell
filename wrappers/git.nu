@@ -1,10 +1,8 @@
 use ../lib/logger.nu
 use ../lib/git_lib.nu [
-  git-default-branch-candidates
   git-main-branch
 ]
 use ../lib/git-worktree.nu [
-  git-create-feature-worktree
   git-current-branch
   git-current-worktree-path
   git-feature-branches
@@ -50,19 +48,6 @@ def "nu-complete git-commits" [] {
   }
 }
 
-# Purge local branches that are neither default branches nor attached to a worktree.
-export def "clean-features" [] {
-  let protected_branches = (
-    (git-default-branch-candidates) ++ (git-worktree-branches)
-  )
-
-  ^git branch --list --format='%(refname:short)'
-    | lines --skip-empty
-    | each { |it| $it | str trim }
-    | where { |it| ($it != "") and ($it not-in $protected_branches) }
-    | each { |it| ^git branch -d $it }
-}
-
 # Display a formatted git log with commit hash, author, message, and relative time.
 export def "log" [
 	lines: int = 10  # Number of commits to display (default: 10)
@@ -84,18 +69,8 @@ export def "discard" [] {
 	git reset --hard
 }
 
-# Create a new feature worktree from the default branch and cd into it.
-export def --env "branch-feature" [
-	branchName: string # Branch name
-  main?: string     # Main branch name (auto-inferred if not provided)
-] {
-  let mainBranch = (git-main-branch $main)
-  let worktreePath = (git-create-feature-worktree $branchName $mainBranch)
-  cd $worktreePath
-}
-
 # Change to an existing feature worktree, or create it if missing.
-export def --env "change-feature" [
+export def --env "wt switch" [
   branchName: string@"nu-complete git-features" # Branch name
   main?: string                                 # Main branch name (auto-inferred if not provided)
 ] {
@@ -104,7 +79,7 @@ export def --env "change-feature" [
 }
 
 # Complete feature development by removing the current feature worktree safely.
-export def --env "finish-feature" [
+export def --env "wt finish" [
   main?: string # Main branch name (auto-inferred if not provided)
 ] {
   let mainBranch = (git-main-branch $main)
@@ -114,7 +89,7 @@ export def --env "finish-feature" [
 
   if ($currentPath == $primaryPath) {
     error make {
-      msg: $"finish-feature must be run from a feature worktree, not the primary ($mainBranch) worktree."
+      msg: $"git wt finish must be run from a feature worktree, not the primary ($mainBranch) worktree."
     }
   }
 
@@ -127,7 +102,7 @@ export def --env "finish-feature" [
 }
 
 # Merge the updated default branch into the current feature worktree.
-export def "merge-master" [
+export def "wt merge" [
   main?: string # Main branch name (auto-inferred if not provided)
 ] {
   let mainBranch = (git-main-branch $main)
@@ -137,7 +112,7 @@ export def "merge-master" [
 
   if ($currentPath == $primaryPath) {
     error make {
-      msg: $"merge-master must be run from a feature worktree, not the primary ($mainBranch) worktree."
+      msg: $"git wt merge must be run from a feature worktree, not the primary ($mainBranch) worktree."
     }
   }
 

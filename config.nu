@@ -23,4 +23,5 @@ use wrappers/mod.nu *
 use commands/llm.nu *
 use commands/db.nu
 use commands/rest.nu *
+use commands/swarm.nu *
 use commands/small_utils.nu *

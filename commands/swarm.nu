@@ -1,5 +1,6 @@
 use ../lib/logger.nu log
 
+
 # Run a multi-model swarm analysis on a prompt piped via stdin.
 #
 # INPUT
@@ -48,22 +49,20 @@ use ../lib/logger.nu log
 export def main [
     --max-rounds: int = 3  # Maximum swarm → critic refinement rounds
 ]: [nothing -> nothing, string -> nothing] {
+    
 
     # --- constants -----------------------------------------------------------
 
     const default_config = {
-        critic_model: "gpt-5.4",
-        swarm_models: [
-          "claude-sonnet-5", "gpt-5.3-codex", "gemini-3.1-pro-preview"
-        ],
+        critic_model: "gpt-5.4"
+        swarm_models: ["claude-sonnet-5", "gpt-5.3-codex", "gemini-3.1-pro-preview"]
     }
-
-    const harness_dir      = "./.harness"
-    const config_file      = ".swarm-config.json"
-    const task_file        = "00_task.md"
-    const context_file     = "01_context.md"
-    const analysis_prefix  = "02_analysis_"
-    const feedback_prefix  = "02_feedback_"
+    const harness_dir = "./.harness"
+    const config_file = ".swarm-config.json"
+    const task_file = "00_task.md"
+    const context_file = "01_context.md"
+    const analysis_prefix = "02_analysis_"
+    const feedback_prefix = "02_feedback_"
     const consensus_prefix = "03_consensus_"
 
     # --- system prompts ------------------------------------------------------
@@ -85,7 +84,6 @@ prompt, state the specific missing information directly rather than guessing.
 
 Respond directly to the prompt without introductory conversational filler.
 "
-
     let critic_feedback_prompt = "
 You are the Critic Agent running an intermediate review.
 
@@ -101,7 +99,6 @@ responsible and state exactly what they missed or got wrong, citing evidence.
 4. No Final Plan: Do not synthesise a conclusion. Output only the Feedback
 Report so the agents can revise their analyses in the next round.
 "
-
     let critic_system_prompt = "
 You are the Consensus and Synthesis Agent. You are receiving independent
 outputs from multiple AI agents that evaluated the identical CONTEXT and PROMPT. 
@@ -128,15 +125,13 @@ output. Present the synthesized result directly.
     # --- resolve prompt ------------------------------------------------------
 
     let task_path = $harness_dir | path join $task_file
-
     let stdin_input = $in
-
     let user_prompt = if ($stdin_input | is-empty) {
         if ($task_path | path exists) {
             log warn $"No stdin prompt — reading from ($task_path)"
             open --raw $task_path | into string
         } else {
-            error make { msg: $"No prompt provided: pipe a string via stdin or create ($task_path)" }
+            error make {msg: $"No prompt provided: pipe a string via stdin or create ($task_path)"}
         }
     } else {
         $stdin_input
@@ -149,7 +144,6 @@ output. Present the synthesized result directly.
     } else {
         $default_config
     }
-
     let swarm_models = $config.swarm_models
     let critic_model = $config.critic_model
 
@@ -162,14 +156,12 @@ output. Present the synthesized result directly.
     # --- load context (optional) ---------------------------------------------
 
     let context_path = $harness_dir | path join $context_file
-
     let context = if ($context_path | path exists) {
         open --raw $context_path | into string
     } else {
         log warn $"No context file found at ($context_path)"
         ""
     }
-
     let context_section = if ($context | is-empty) {
         ""
     } else {
@@ -179,18 +171,14 @@ output. Present the synthesized result directly.
     # --- iterative refinement loop -------------------------------------------
 
     mut feedback = ""
-
     for round in 1..$max_rounds {
-
         log info $"Round ($round) of ($max_rounds): running swarm agents \(($swarm_models | str join ', ')\)..."
-
         let prev_round = $round - 1
         let feedback_section = if ($feedback | is-empty) {
             ""
         } else {
             $"\n\n--- CRITIC FEEDBACK \(Round ($prev_round)\) ---\n($feedback)"
         }
-
         let full_swarm_prompt = $"--- SYSTEM PROMPT ---\n($swarm_system_prompt)($context_section)($feedback_section)\n\n--- USER PROMPT ---\n($user_prompt)"
 
         # run swarm agents in parallel
@@ -202,20 +190,20 @@ output. Present the synthesized result directly.
         # aggregate analyses for the critic
         let aggregated_analyses = ($swarm_models | each {|model|
             let analysis_path = $harness_dir | path join $"($analysis_prefix)($model)_r($round).md"
-            let file_content = (open --raw $analysis_path | into string)
+            let file_content = open --raw $analysis_path | into string
             $"--- Analysis from ($model) ---\n($file_content)\n"
         } | str join "\n")
-
         if $round < $max_rounds {
 
             # intermediate round: critic produces a feedback report
             log info $"Round ($round): running critic \(($critic_model)\) for feedback..."
             let full_critic_prompt = $"--- SYSTEM PROMPT ---\n($critic_feedback_prompt)\n\n--- ADDITIONAL CONTEXT ---\n($aggregated_analyses)"
             let feedback_path = $harness_dir | path join $"($feedback_prefix)r($round).md"
-            let new_feedback = (copilot --silent --model $critic_model -p $full_critic_prompt --allow-all-tools)
+            let new_feedback = (
+                copilot --silent --model $critic_model -p $full_critic_prompt --allow-all-tools
+            )
             $new_feedback | save --force $feedback_path
             $feedback = $new_feedback
-
         } else {
 
             # final round: critic produces the consensus plan
@@ -223,7 +211,6 @@ output. Present the synthesized result directly.
             let full_critic_prompt = $"--- SYSTEM PROMPT ---\n($critic_system_prompt)\n\n--- ADDITIONAL CONTEXT ---\n($aggregated_analyses)"
             let consensus_path = $harness_dir | path join $"($consensus_prefix)($critic_model).md"
             copilot --silent --model $critic_model -p $full_critic_prompt --allow-all-tools | save --force $consensus_path
-
         }
     }
 }

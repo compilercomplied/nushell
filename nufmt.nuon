@@ -1,0 +1,6 @@
+{
+    indent: 4
+    indent_char: "space"
+    line_length: 80
+    margin: 2
+}

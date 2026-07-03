@@ -1,4 +1,3 @@
-
 source (if ([$nu.default-config-dir, '.ansible_nushell_env.nu'] | path join | path exists) {
 	# The ansible file contains dynamic configuration for different tools that
 	# need manual configuration to be added to $PATH. This is an example bit that

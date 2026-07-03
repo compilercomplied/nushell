@@ -1,9 +1,9 @@
 def "nu-complete mise-tasks" [] {
-	if ("mise.toml" | path exists) {
-		try {
-			let config = (open mise.toml)
-			if ("tasks" in $config) {
-				return (
+    if ("mise.toml" | path exists) {
+        try {
+            let config = (open mise.toml)
+            if "tasks" in $config {
+                return (
 					$config.tasks 
 					| transpose name details 
 					| each { |it| 
@@ -14,21 +14,20 @@ def "nu-complete mise-tasks" [] {
 						}
 					}
 				)
-			}
-		} catch {
-			return []
-		}
-	}
-	return []
+            }
+        } catch {
+            return []
+        }
+    }
+    return []
 }
+
 
 export def --wrapped main [...args] {
-	^mise ...$args
+    ^mise ...$args
 }
 
-export def --wrapped run [
-	task: string@"nu-complete mise-tasks"
-	...args
-] {
-	^mise run $task ...$args
+
+export def --wrapped run [task: string@"nu-complete mise-tasks", ...args] {
+    ^mise run $task ...$args
 }

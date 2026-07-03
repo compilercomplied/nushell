@@ -32,35 +32,38 @@ def check-tool [tool: string] {
     }
 }
 
+
 # Internal helper to get Azure Access Token for OSS RDBMS (Postgres)
 def get-pg-entra-token [] {
     # Requires 'az login' to have been run previously
     check-tool "az"
-    
-    let result = (run-external "az" "account" "get-access-token" "--resource-type" "oss-rdbms" "--output" "json" | complete)
-    
+    let result = (
+        run-external "az" "account" "get-access-token" "--resource-type" "oss-rdbms" "--output" "json"
+        | complete
+    )
     if $result.exit_code != 0 {
         error make {msg: $"Failed to get Azure token. Make sure you're logged in with 'az login'. Error: ($result.stderr)"}
     }
-    
-    let token_json = ($result.stdout | from json)
+    let token_json = $result.stdout | from json
     return $token_json.accessToken
 }
+
 
 # Internal helper to get Azure Access Token for SQL Database
 def get-mssql-entra-token [] {
     # For MSSQL, we use the SQL Database resource
     check-tool "az"
-    
-    let result = (run-external "az" "account" "get-access-token" "--resource" "https://database.windows.net/" "--output" "json" | complete)
-    
+    let result = (
+        run-external "az" "account" "get-access-token" "--resource" "https://database.windows.net/" "--output" "json"
+        | complete
+    )
     if $result.exit_code != 0 {
         error make {msg: $"Failed to get Azure token for MSSQL. Make sure you're logged in with 'az login'. Error: ($result.stderr)"}
     }
-    
-    let token_json = ($result.stdout | from json)
+    let token_json = $result.stdout | from json
     return $token_json.accessToken
 }
+
 
 # Internal helper to construct MSSQL connection args
 def build-mssql-args [config: record, query: string] {
@@ -68,26 +71,27 @@ def build-mssql-args [config: record, query: string] {
     # SET NOCOUNT ON prevents "rows affected" messages from breaking JSON parsing
     # We wrap the user's query in a subquery and append FOR JSON PATH to get structured output
     # Strip trailing semicolon from query if present
-    let clean_query = ($query | str trim | str replace --regex ';+$' '')
+    let clean_query = $query | str trim | str replace --regex ';+$' ''
     let json_query = $"SET NOCOUNT ON; SELECT * FROM \(($clean_query)\) AS sub FOR JSON PATH, ROOT\('root'\), INCLUDE_NULL_VALUES;"
-    
+
     # Build server connection string with port if specified
-    let server_str = if ($config.port? != null) {
+    let server_str = if $config.port? != null {
         $"($config.host),($config.port)"
     } else {
         $config.host
     }
-    
     let common_flags = [
         "-S" $server_str
         "-d" $config.db
-        "-y" "0"      # Max variable length (prevent JSON truncation)
-        "-W"          # Remove trailing spaces
-        "-h" "-1"     # No headers
+        "-y" # Max variable length (prevent JSON truncation)
+        "0"
+        "-W" # Remove trailing spaces
+        "-h" # No headers
+        "-1"
         "-Q" $json_query
     ]
-
     if $config.auth_type == "entra" {
+
         # -G uses Azure Active Directory authentication
         # For non-interactive auth, we could use access token via -P flag
         return ($common_flags | append ["-G"])
@@ -97,6 +101,7 @@ def build-mssql-args [config: record, query: string] {
     }
 }
 
+
 # Internal helper to construct PGSQL connection string and environment
 def build-pgsql-connection [config: record] {
     # Get password (either from config or Entra token)
@@ -105,39 +110,37 @@ def build-pgsql-connection [config: record] {
     } else {
         $config.pass
     }
-    
+
     # Build connection string with optional schema
-    let conn_str = if ($config.schema? != null) {
+    let conn_str = if $config.schema? != null {
         $"host=($config.host) port=($config.port) dbname=($config.db) user=($config.user) options='-c search_path=($config.schema)'"
     } else {
         $"host=($config.host) port=($config.port) dbname=($config.db) user=($config.user)"
     }
-    
     return {
         conn_str: $conn_str
-        env: { PGPASSWORD: $password }
+        env: {PGPASSWORD: $password}
     }
 }
+
 
 def load-config-from-key [target: string] {
 
     # Load config from environment (set in work.nu)
-    if ($env.db_configs? == null) {
+    if $env.db_configs? == null {
         error make {msg: "Database configurations not found. Make sure work.nu is loaded and $env.db_configs is set."}
     }
-    
-    let config = ($env.db_configs | get --optional $target)
-
+    let config = $env.db_configs | get --optional $target
     if ($config | is-empty) {
         error make {msg: $"Configuration '($target)' not found in $env.db_configs. Available targets: ($env.db_configs | columns | str join ', ')"}
     }
-
     return $config
 }
 
+
 # Custom completer for database targets
 export def db-targets [] {
-    if ($env.db_configs? != null) {
+    if $env.db_configs? != null {
         $env.db_configs | transpose name config | each { |it|
             {
                 value: $it.name
@@ -149,22 +152,20 @@ export def db-targets [] {
     }
 }
 
+
 # Execute a sql query in a database.
 export def query [
     target: string@db-targets,  # The key from $env.db_configs (e.g., 'local_mssql')
     query: string                # The SQL query to execute
 ] {
     let config = load-config-from-key $target
-
     match $config.engine {
         "mssql" => {
             check-tool "sqlcmd"
-            
             let args = (build-mssql-args $config $query)
-            
-            # Run sqlcmd. We expect a raw JSON string output.
-            let raw_result = (run-external "sqlcmd" ...$args | complete)
 
+            # Run sqlcmd. We expect a raw JSON string output.
+            let raw_result = run-external "sqlcmd" ...$args | complete
             if $raw_result.exit_code != 0 {
                 error make {
                     msg: $"MSSQL query failed on '($target)'"
@@ -177,16 +178,14 @@ export def query [
 
             # Parse: sqlcmd might output multiple lines for big JSON, we join them
             # Then we parse JSON. The wrapper put it in {root: [...]}, so we get .root
-            let json_str = ($raw_result.stdout | lines | str join "")
-            
+            let json_str = $raw_result.stdout | lines | str join ""
             if ($json_str | is-empty) {
                 return []
             }
-            
             try {
-                let parsed = ($json_str | from json)
+                let parsed = $json_str | from json
                 # Check if root exists and is not null
-                if ($parsed.root? != null) {
+                if $parsed.root? != null {
                     return $parsed.root
                 } else {
                     return []
@@ -197,10 +196,8 @@ export def query [
                 return []
             }
         }
-        
         "pgsql" => {
             check-tool "psql"
-            
             let connection = (build-pgsql-connection $config)
 
             # Run psql with --csv flag for robust parsing
@@ -209,7 +206,6 @@ export def query [
                     run-external "psql" $connection.conn_str "-c" $query "--csv" | complete
                 }
             )
-
             if $raw_result.exit_code != 0 {
                 error make {
                     msg: $"PGSQL query failed on '($target)'"
@@ -224,7 +220,6 @@ export def query [
             if ($raw_result.stdout | is-empty) {
                 return []
             }
-            
             try {
                 return ($raw_result.stdout | from csv)
             } catch {
@@ -232,19 +227,18 @@ export def query [
                 return []
             }
         }
-        
         _ => {
             error make {msg: $"Unsupported database engine: ($config.engine). Only 'mssql' and 'pgsql' are supported."}
         }
     }
 }
 
+
 # List all tables in a database.
 export def "tables" [
     target: string@db-targets  # The key from $env.db_configs (e.g., 'local_mssql')
 ] {
     let config = load-config-from-key $target
-
     match $config.engine {
         "mssql" => {
             let sql = "SELECT top(100) TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES ORDER BY TABLE_SCHEMA, TABLE_NAME"
@@ -260,13 +254,13 @@ export def "tables" [
     }
 }
 
+
 # List all the columns in a table.
 export def "table columns" [
     target: string@db-targets,  # The key from $env.db_configs (e.g., 'local_mssql')
     name: string # Table name
 ] {
     let config = load-config-from-key $target
-
     match $config.engine {
         "mssql" => {
             let columns_sql = "SELECT TOP(100) COLUMN_NAME as column_name, DATA_TYPE as data_type, CHARACTER_MAXIMUM_LENGTH as max_length, IS_NULLABLE as is_nullable, COLUMN_DEFAULT as default_value FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" ++ $name ++ "' ORDER BY ORDINAL_POSITION"

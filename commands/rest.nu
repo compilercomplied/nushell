@@ -1,7 +1,8 @@
 # Autocomplete for methods
 def methods [] {
-    [ "get", "post", "put", "delete", "patch" ]
+    ["get", "post", "put", "delete", "patch"]
 }
+
 
 # Wrapper over nushell's builtin http to simplify making requests to
 # restful APIs.
@@ -11,11 +12,10 @@ export def main [
     body?: any # Either a string pointing to a file or a nushell record
 ] {
     let headers = if ($env.rest_authorization? | is-not-empty) {
-        { Authorization: $env.rest_authorization }
+        {Authorization: $env.rest_authorization}
     } else {
         {}
     }
-
     let request_body = if ($body | is-not-empty) {
         if ($body | describe) == "string" {
             open $body
@@ -25,7 +25,6 @@ export def main [
     } else {
         {}
     }
-
     match ($method | str downcase) {
         "get" => {
             http get $url --headers $headers
@@ -43,7 +42,7 @@ export def main [
             http patch $url $request_body --headers $headers -t application/json
         }
         _ => {
-            error make { msg: $"Unsupported method: ($method)" }
+            error make {msg: $"Unsupported method: ($method)"}
         }
     }
 }

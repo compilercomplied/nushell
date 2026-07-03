@@ -1,3 +1,4 @@
+use ../lib/error.nu mkerr
 # Autocomplete for Kubernetes object types
 def "nu-complete k8s-object-types" [] {
     ["pod" "deployment" "namespace"]
@@ -181,7 +182,7 @@ export def "fetch-context" [
     } else if ($config_type | str trim) == "k8s" {
         "/etc/kubernetes/admin.conf"
     } else {
-        error make {msg: $"No k3s or k8s config found on ($host)."}
+        mkerr $"No k3s or k8s config found on ($host)."
     }
     print $"Found ($config_type | str trim) config at ($remote_path). Pulling..."
     let temp_config = mktemp -t $"nubectl-($host)-XXXXXX.yaml" | str trim

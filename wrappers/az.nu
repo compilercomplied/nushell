@@ -1,3 +1,4 @@
+use ../lib/error.nu mkerr
 # Completion helper for AKS cluster names
 def "nu-complete aks clusters" [] {
     $env.aks_clusters | columns
@@ -51,10 +52,10 @@ def "resolve acr subscription" [] {
         }
     )
     if ($matching_subscriptions | is-empty) {
-        error make {msg: $"could not find ACR '($env.acr_name)' in any enabled subscription. Configure $env.acr_subscription explicitly in env/work.nu."}
+        mkerr $"could not find ACR '($env.acr_name)' in any enabled subscription. Configure $env.acr_subscription explicitly in env/work.nu."
     }
     if ($matching_subscriptions | length) > 1 {
-        error make {msg: $"ACR '($env.acr_name)' exists in multiple subscriptions: ($matching_subscriptions | str join ', '). Configure $env.acr_subscription explicitly in env/work.nu."}
+        mkerr $"ACR '($env.acr_name)' exists in multiple subscriptions: ($matching_subscriptions | str join ', '). Configure $env.acr_subscription explicitly in env/work.nu."
     }
     $matching_subscriptions | first
 }
@@ -148,7 +149,7 @@ export def "aks login" [
     cluster: string@"nu-complete aks clusters"  # Cluster name (use tab completion)
 ] {
     if $cluster not-in $env.aks_clusters {
-        error make {msg: $"unknown cluster name: ($cluster). Valid options are: ($env.aks_clusters | columns | str join ', ')"}
+        mkerr $"unknown cluster name: ($cluster). Valid options are: ($env.aks_clusters | columns | str join ', ')"
     }
     let config = $env.aks_clusters | get $cluster
     az aks get-credentials --name $config.name --resource-group $config.resource_group --subscription $config.subscription
@@ -215,6 +216,6 @@ export def "access-tokens" [
         | from json
         | get accessToken
     } else {
-        error make {msg: $"unknown database resource type: ($resource). Valid options are: pgsql, mssql"}
+        mkerr $"unknown database resource type: ($resource). Valid options are: pgsql, mssql"
     }
 }

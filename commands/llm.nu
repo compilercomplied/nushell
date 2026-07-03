@@ -1,3 +1,4 @@
+use ../lib/error.nu mkerr
 const context = (
 		"CONTEXT: You are a CLI assistant running in a terminal. "
 	+ "OUTPUT: Markdown. "
@@ -18,14 +19,14 @@ export def q [prompt: string, --backend: string@backends = "gemini"] {
         call_claude $prompt
     } else {
         let valid = backends | str join ", "
-        error make {msg: $"Unknown backend: ($backend). Supported: ($valid)"}
+        mkerr $"Unknown backend: ($backend). Supported: ($valid)"
     }
 }
 
 
 def call_gemini [prompt: string] {
     if ($env.GEMINI_API_KEY? | is-empty) {
-        error make {msg: "GEMINI_API_KEY environment variable is not set."}
+        mkerr "GEMINI_API_KEY environment variable is not set."
     }
     let url = ("https://generativelanguage.googleapis.com/v1beta/models"
 			+ "/gemini-3-flash-preview:generateContent")
@@ -47,7 +48,7 @@ def call_gemini [prompt: string] {
 
 def call_claude [prompt: string] {
     if ($env.ANTHROPIC_API_KEY? | is-empty) {
-        error make {msg: "ANTHROPIC_API_KEY environment variable is not set."}
+        mkerr "ANTHROPIC_API_KEY environment variable is not set."
     }
     let url = "https://api.anthropic.com/v1/messages"
     let body = {

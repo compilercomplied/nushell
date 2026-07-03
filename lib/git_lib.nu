@@ -1,7 +1,8 @@
+use error.nu mkerr
 # Get the remote name of the git repo.
 export def get-git-repo-name []: nothing -> string {
     if (do { git rev-parse --is-inside-work-tree } | complete).exit_code != 0 {
-        error make {msg: "Current directory is not a git repository."}
+        mkerr "Current directory is not a git repository."
     }
     git remote get-url origin
     | awk -F'[/:]' '{print $NF}'
@@ -46,5 +47,5 @@ export def git-main-branch [main?: string] {
             return $branch
         }
     }
-    error make {msg: "Unable to infer the default branch; pass it explicitly."}
+    mkerr "Unable to infer the default branch; pass it explicitly."
 }

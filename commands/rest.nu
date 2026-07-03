@@ -1,3 +1,4 @@
+use ../lib/error.nu mkerr
 # Autocomplete for methods
 def methods [] {
     ["get", "post", "put", "delete", "patch"]
@@ -42,7 +43,7 @@ export def main [
             http patch $url $request_body --headers $headers -t application/json
         }
         _ => {
-            error make {msg: $"Unsupported method: ($method)"}
+            mkerr $"Unsupported method: ($method)"
         }
     }
 }

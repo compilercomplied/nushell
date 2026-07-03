@@ -1,3 +1,4 @@
+use ../lib/error.nu mkerr
 # Database query module for MSSQL and Postgres with Entra ID support
 # Configuration is loaded from $env.db_configs (see work.nu)
 # Example configuration:
@@ -28,7 +29,7 @@
 # Validate that required external tools are available
 def check-tool [tool: string] {
     if (which $tool | is-empty) {
-        error make {msg: $"Required tool '($tool)' not found in PATH. Please install it first."}
+        mkerr $"Required tool '($tool)' not found in PATH. Please install it first."
     }
 }
 
@@ -42,7 +43,7 @@ def get-pg-entra-token [] {
         | complete
     )
     if $result.exit_code != 0 {
-        error make {msg: $"Failed to get Azure token. Make sure you're logged in with 'az login'. Error: ($result.stderr)"}
+        mkerr $"Failed to get Azure token. Make sure you're logged in with 'az login'. Error: ($result.stderr)"
     }
     let token_json = $result.stdout | from json
     return $token_json.accessToken
@@ -58,7 +59,7 @@ def get-mssql-entra-token [] {
         | complete
     )
     if $result.exit_code != 0 {
-        error make {msg: $"Failed to get Azure token for MSSQL. Make sure you're logged in with 'az login'. Error: ($result.stderr)"}
+        mkerr $"Failed to get Azure token for MSSQL. Make sure you're logged in with 'az login'. Error: ($result.stderr)"
     }
     let token_json = $result.stdout | from json
     return $token_json.accessToken
@@ -128,11 +129,11 @@ def load-config-from-key [target: string] {
 
     # Load config from environment (set in work.nu)
     if $env.db_configs? == null {
-        error make {msg: "Database configurations not found. Make sure work.nu is loaded and $env.db_configs is set."}
+        mkerr "Database configurations not found. Make sure work.nu is loaded and $env.db_configs is set."
     }
     let config = $env.db_configs | get --optional $target
     if ($config | is-empty) {
-        error make {msg: $"Configuration '($target)' not found in $env.db_configs. Available targets: ($env.db_configs | columns | str join ', ')"}
+        mkerr $"Configuration '($target)' not found in $env.db_configs. Available targets: ($env.db_configs | columns | str join ', ')"
     }
     return $config
 }
@@ -228,7 +229,7 @@ export def query [
             }
         }
         _ => {
-            error make {msg: $"Unsupported database engine: ($config.engine). Only 'mssql' and 'pgsql' are supported."}
+            mkerr $"Unsupported database engine: ($config.engine). Only 'mssql' and 'pgsql' are supported."
         }
     }
 }
@@ -249,7 +250,7 @@ export def "tables" [
             query $target $sql
         }
         _ => {
-            error make {msg: $"Unsupported database engine: ($config.engine). Only 'mssql' and 'pgsql' are supported."}
+            mkerr $"Unsupported database engine: ($config.engine). Only 'mssql' and 'pgsql' are supported."
         }
     }
 }
@@ -272,7 +273,7 @@ export def "table columns" [
             query $target $columns_sql
         }
         _ => {
-            error make {msg: $"Unsupported database engine: ($config.engine). Only 'mssql' and 'pgsql' are supported."}
+            mkerr $"Unsupported database engine: ($config.engine). Only 'mssql' and 'pgsql' are supported."
         }
     }
 }

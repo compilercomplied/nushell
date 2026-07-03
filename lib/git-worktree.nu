@@ -1,4 +1,5 @@
 use git_lib.nu [git-default-branch-candidates]
+use error.nu mkerr
 
 
 export def git-current-branch [] {
@@ -58,7 +59,7 @@ export def git-create-feature-worktree [branch_name: string, main_branch: string
     let primary_path = (git-primary-worktree-path)
     let worktree_path = (git-feature-worktree-path $branch_name)
     if ($worktree_path | path exists) {
-        error make {msg: $"Worktree path already exists: ($worktree_path)"}
+        mkerr $"Worktree path already exists: ($worktree_path)"
     }
     mkdir ($worktree_path | path dirname)
     git-update-main-worktree $main_branch

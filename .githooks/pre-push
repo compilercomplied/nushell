@@ -1,0 +1,27 @@
+#!/usr/bin/env sh
+# pre-push hook: runs nufmt on all .nu files in the repo root.
+# Stored in .githooks/ so it is tracked by git.
+# Activate with: git config core.hooksPath .githooks
+
+set -e
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+if ! command -v nufmt > /dev/null 2>&1; then
+    echo "pre-push: 'nufmt' not found in PATH, skipping format check."
+    exit 0
+fi
+
+echo "pre-push: running nufmt on $REPO_ROOT ..."
+nufmt "$REPO_ROOT"
+
+# If nufmt changed any files, abort the push so the user can review and re-stage.
+if ! git diff --quiet; then
+    echo ""
+    echo "pre-push: nufmt reformatted one or more files."
+    echo "  Review the changes, stage them, and push again."
+    exit 1
+fi
+
+echo "pre-push: formatting OK."
+exit 0

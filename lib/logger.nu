@@ -1,3 +1,4 @@
+use error.nu mkerr
 # Custom completion for log levels
 def "nu-complete log-levels" [] {
     [warn, info, error, debug]
@@ -17,7 +18,7 @@ export def log [
         _ => "unknown"
     }
     if $icon == "unknown" {
-        error make {msg: $"Unknown log level '$(level)'"}
+        mkerr $"Unknown log level '$(level)'"
     }
     let timestamp_section = if $without_timestamp {
         ""

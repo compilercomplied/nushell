@@ -1,4 +1,5 @@
 use ../lib/logger.nu
+use ../lib/error.nu mkerr
 use ../lib/git_lib.nu [git-main-branch]
 use ../lib/git-worktree.nu [
     git-current-branch
@@ -91,7 +92,7 @@ export def --env "wt finish" [
     let currentPath = (git-current-worktree-path)
     let primaryPath = (git-primary-worktree-path)
     if $currentPath == $primaryPath {
-        error make {msg: $"git wt finish must be run from a feature worktree, not the primary ($mainBranch) worktree."}
+        mkerr $"git wt finish must be run from a feature worktree, not the primary ($mainBranch) worktree."
     }
     git-update-main-worktree $mainBranch
     cd $primaryPath
@@ -109,10 +110,10 @@ export def "wt merge" [
     let currentPath = (git-current-worktree-path)
     let primaryPath = (git-primary-worktree-path)
     if $currentPath == $primaryPath {
-        error make {msg: $"git wt merge must be run from a feature worktree, not the primary ($mainBranch) worktree."}
+        mkerr $"git wt merge must be run from a feature worktree, not the primary ($mainBranch) worktree."
     }
     if $currentBranch == $mainBranch {
-        error make {msg: $"Already on the default branch: ($mainBranch)"}
+        mkerr $"Already on the default branch: ($mainBranch)"
     }
     git-update-main-worktree $mainBranch
     ^git merge $mainBranch
@@ -207,7 +208,7 @@ export def "uncommit" [
   count: int = 1 # Number of commits to uncommit
 ] {
     if $count < 1 {
-        error make {msg: "count must be at least 1"}
+        mkerr "count must be at least 1"
     }
     ^git reset --soft $"HEAD~($count)"
 }

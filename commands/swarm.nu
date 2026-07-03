@@ -1,4 +1,5 @@
 use ../lib/logger.nu log
+use ../lib/error.nu mkerr
 
 
 # Run a multi-model swarm analysis on a prompt piped via stdin.
@@ -131,7 +132,7 @@ output. Present the synthesized result directly.
             log warn $"No stdin prompt — reading from ($task_path)"
             open --raw $task_path | into string
         } else {
-            error make {msg: $"No prompt provided: pipe a string via stdin or create ($task_path)"}
+            mkerr $"No prompt provided: pipe a string via stdin or create ($task_path)"
         }
     } else {
         $stdin_input

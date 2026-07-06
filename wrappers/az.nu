@@ -1,4 +1,6 @@
 use ../lib/error.nu mkerr
+
+
 # Completion helper for AKS cluster names
 def "nu-complete aks clusters" [] {
     $env.aks_clusters | columns

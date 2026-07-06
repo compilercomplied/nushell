@@ -1,4 +1,6 @@
 use error.nu mkerr
+
+
 export def validate-tool-exists [toolname: string] {
     if (which $toolname | is-empty) {
         mkerr (

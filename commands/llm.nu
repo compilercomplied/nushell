@@ -1,4 +1,6 @@
 use ../lib/error.nu mkerr
+
+
 const context = (
 		"CONTEXT: You are a CLI assistant running in a terminal. "
 	+ "OUTPUT: Markdown. "

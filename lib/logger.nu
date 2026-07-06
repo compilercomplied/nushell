@@ -1,4 +1,6 @@
 use error.nu mkerr
+
+
 # Custom completion for log levels
 def "nu-complete log-levels" [] {
     [warn, info, error, debug]

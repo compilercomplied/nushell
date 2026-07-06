@@ -2,8 +2,24 @@ use ../lib/logger.nu log
 use ../lib/error.nu mkerr
 
 
+# --- module-level constants --------------------------------------------------
+
+const default_config = {
+    critic_model: "gpt-5.4"
+    swarm_models: ["gemini-3.5-flash", "gpt-5.3-codex"]
+}
+
+
+const harness_dir = "./.harness"
+const config_file = ".swarm-config.json"
+const task_file = "00_task.md"
+const context_file = "01_context.md"
+const analysis_prefix = "02_analysis_"
+const feedback_prefix = "02_feedback_"
+const consensus_prefix = "03_consensus_"
+
+
 # Run a multi-model swarm analysis on a prompt piped via stdin.
-#
 # INPUT
 #   Pipe your analysis prompt as a string through stdin:
 #     "Analyse the migration gaps in this codebase" | swarm
@@ -52,20 +68,6 @@ export def main [
 ]: [nothing -> nothing, string -> nothing] {
     
 
-    # --- constants -----------------------------------------------------------
-
-    const default_config = {
-        critic_model: "gpt-5.4"
-        swarm_models: ["claude-sonnet-5", "gpt-5.3-codex", "gemini-3.1-pro-preview"]
-    }
-    const harness_dir = "./.harness"
-    const config_file = ".swarm-config.json"
-    const task_file = "00_task.md"
-    const context_file = "01_context.md"
-    const analysis_prefix = "02_analysis_"
-    const feedback_prefix = "02_feedback_"
-    const consensus_prefix = "03_consensus_"
-
     # --- system prompts ------------------------------------------------------
 
     let swarm_system_prompt = "
@@ -91,21 +93,36 @@ You are the Critic Agent running an intermediate review.
 Your task is NOT to produce a final answer. Cross-reference the agent analyses
 below and identify discrepancies, gaps, and missed areas between them.
 
+Evaluation Criteria:
+- TASK: Use the original task as the authoritative measure of relevance. Flag any
+  agent output that drifts from, ignores, or only partially addresses the task.
+- CONTEXT: Use the provided context as the ground truth. Flag any agent output
+  that contradicts, overlooks, or misinterprets information in the context.
+
 Execution Rules:
 1. Identify Conflicts: Flag any point where agents contradict each other.
 2. Identify Gaps: Flag anything that only one agent mentioned — these are
 unverified and need a second opinion.
 3. Targeted Feedback: For each gap or conflict, address the specific agent(s)
-responsible and state exactly what they missed or got wrong, citing evidence.
+responsible and state exactly what they missed or got wrong, citing evidence
+from the TASK and CONTEXT.
 4. No Final Plan: Do not synthesise a conclusion. Output only the Feedback
 Report so the agents can revise their analyses in the next round.
 "
     let critic_system_prompt = "
 You are the Consensus and Synthesis Agent. You are receiving independent
-outputs from multiple AI agents that evaluated the identical CONTEXT and PROMPT. 
+outputs from multiple AI agents that evaluated the identical CONTEXT and PROMPT.
 
 Your mandate is to synthesize a high-confidence final response based on
 multi-agent consensus.
+
+Evaluation Criteria:
+- TASK: The original task is the authoritative definition of what the final
+  answer must address. Only retain consensus points that are directly relevant
+  to the task. Discard consensus that does not contribute to answering it.
+- CONTEXT: The provided context is the ground truth. The final synthesis must
+  be fully grounded in the context and must not introduce facts, assumptions,
+  or conclusions that contradict it.
 
 Execution Rules:
 1. Cross-Reference: Compare all agent outputs to identify intersecting
@@ -117,7 +134,7 @@ multiple agents share consensus.
 objectively state the differing perspectives, but exclude both from the final
 factual synthesis.
 4. Final Synthesis: Combine the verified, multi-agent consensus points into a
-single, cohesive response that directly answers the original PROMPT.
+single, cohesive response that directly answers the original TASK.
 
 Do not mention the individual agents or the consensus process in your final
 output. Present the synthesized result directly.
@@ -198,7 +215,7 @@ output. Present the synthesized result directly.
 
             # intermediate round: critic produces a feedback report
             log info $"Round ($round): running critic \(($critic_model)\) for feedback..."
-            let full_critic_prompt = $"--- SYSTEM PROMPT ---\n($critic_feedback_prompt)\n\n--- ADDITIONAL CONTEXT ---\n($aggregated_analyses)"
+            let full_critic_prompt = $"--- SYSTEM PROMPT ---\n($critic_feedback_prompt)\n\n--- TASK ---\n($user_prompt)($context_section)\n\n--- AGENT ANALYSES ---\n($aggregated_analyses)"
             let feedback_path = $harness_dir | path join $"($feedback_prefix)r($round).md"
             let new_feedback = (
                 copilot --silent --model $critic_model -p $full_critic_prompt --allow-all-tools
@@ -209,9 +226,35 @@ output. Present the synthesized result directly.
 
             # final round: critic produces the consensus plan
             log info $"Round ($round): running critic \(($critic_model)\) for final synthesis..."
-            let full_critic_prompt = $"--- SYSTEM PROMPT ---\n($critic_system_prompt)\n\n--- ADDITIONAL CONTEXT ---\n($aggregated_analyses)"
+            let full_critic_prompt = $"--- SYSTEM PROMPT ---\n($critic_system_prompt)\n\n--- TASK ---\n($user_prompt)($context_section)\n\n--- AGENT ANALYSES ---\n($aggregated_analyses)"
             let consensus_path = $harness_dir | path join $"($consensus_prefix)($critic_model).md"
             copilot --silent --model $critic_model -p $full_critic_prompt --allow-all-tools | save --force $consensus_path
         }
     }
+}
+
+
+# Initialise the harness directory and config file for a new swarm project.
+#
+# Creates (or overwrites) the following files:
+#   .harness/00_task.md      — empty task prompt file
+#   .harness/01_context.md   — empty context file
+#   .swarm-config.json       — default model configuration
+export def "swarm init" [] {
+    # --- create harness directory --------------------------------------------
+
+    if not ($harness_dir | path exists) {
+        mkdir $harness_dir
+        log info $"Created ($harness_dir)/"
+    }
+
+    # --- seed files (always overwrite) ---------------------------------------
+
+    "" | save --force ($harness_dir | path join $task_file)
+    log info $"Wrote ($harness_dir)/($task_file)"
+    "" | save --force ($harness_dir | path join $context_file)
+    log info $"Wrote ($harness_dir)/($context_file)"
+    $default_config | to json --indent 2 | save --force $config_file
+    log info $"Wrote ($config_file)"
+    log info "swarm init complete"
 }

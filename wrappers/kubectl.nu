@@ -1,4 +1,6 @@
 use ../lib/error.nu mkerr
+
+
 # Autocomplete for Kubernetes object types
 def "nu-complete k8s-object-types" [] {
     ["pod" "deployment" "namespace"]

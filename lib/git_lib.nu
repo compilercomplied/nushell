@@ -1,4 +1,6 @@
 use error.nu mkerr
+
+
 # Get the remote name of the git repo.
 export def get-git-repo-name []: nothing -> string {
     if (do { git rev-parse --is-inside-work-tree } | complete).exit_code != 0 {

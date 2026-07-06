@@ -1,4 +1,6 @@
 use ../lib/error.nu mkerr
+
+
 # Database query module for MSSQL and Postgres with Entra ID support
 # Configuration is loaded from $env.db_configs (see work.nu)
 # Example configuration:

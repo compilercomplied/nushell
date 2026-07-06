@@ -1,4 +1,6 @@
 use ../lib/error.nu mkerr
+
+
 # Autocomplete for methods
 def methods [] {
     ["get", "post", "put", "delete", "patch"]

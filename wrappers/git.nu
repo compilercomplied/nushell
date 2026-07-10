@@ -168,7 +168,7 @@ export def --env "init" [
         $args
     }
     ^git init ...$git_args
-    let remote_url = $"git@github.com:compilercomplied/($actual_project_name).git"
+    let remote_url = $"git@git.gdario.dev:home/($actual_project_name).git"
     try {
         ^git remote add origin $remote_url
     } catch {|err| logger log warn --without-timestamp $"Failed to add remote: ($err.msg)" }

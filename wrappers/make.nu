@@ -1,4 +1,4 @@
-export def "nu-complete make-targets" [] {
+def "nu-complete make-targets" [] {
     let makefiles = ["GNUmakefile" "Makefile" "makefile"]
     let makefile = (
     $makefiles

@@ -1,4 +1,4 @@
-def "nu-complete make-targets" [] {
+export def "nu-complete make-targets" [] {
     let makefiles = ["GNUmakefile" "Makefile" "makefile"]
     let makefile = (
     $makefiles
@@ -14,7 +14,7 @@ def "nu-complete make-targets" [] {
       $lines
       | each {|line| $line | str trim }
       | where {|line| $line | str contains '@echo "  ' }
-      | parse '@echo "  {value} - {description}"'
+      | parse --regex '@echo "\s*(?<value>\S+)\s+-\s+(?<description>.*)"'
       | each { |entry|
           {
             value: ($entry.value | str trim)

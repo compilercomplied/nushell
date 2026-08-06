@@ -9,3 +9,6 @@ source (if ([$nu.default-config-dir, '.ansible_nushell_env.nu'] | path join | pa
 	# ---------------------------------------------------------------------------
 	[$nu.default-config-dir, '.ansible_nushell_env.nu'] | path join
 } else { null })
+
+# dotnet global tools (e.g. csharprepl) are installed here
+$env.PATH = ($env.PATH | prepend ($env.HOME + '/.dotnet/tools'))

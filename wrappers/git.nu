@@ -48,6 +48,25 @@ def "nu-complete git-commits" [] {
     }
 }
 
+# Helper for stacked commit completion used by `git wt cherry`.
+def "nu-complete git-wt-cherry-commits" [] {
+    try {
+        let main_branch = (git-main-branch)
+        {
+            options: {
+                sort: false
+            }
+            completions: (
+                ^git log --pretty=%h»¦«%s $"($main_branch)..HEAD"
+                | lines --skip-empty
+                | split column "»¦«" value description
+            )
+        }
+    } catch {
+        []
+    }
+}
+
 
 # Display a formatted git log with commit hash, author, message, and relative time.
 export def "log" [
@@ -117,6 +136,62 @@ export def "wt merge" [
     }
     git-update-main-worktree $mainBranch
     ^git merge $mainBranch
+}
+
+
+# Cherry-pick the selected commit and all commits above it into a new worktree.
+export def --env "wt cherry" [
+  commit: string@"nu-complete git-wt-cherry-commits" # Oldest commit to cherry-pick (inclusive)
+  worktreeName: string                                # New worktree/branch name
+  main?: string                                       # Main branch name (auto-inferred if not provided)
+] {
+    let mainBranch = (git-main-branch $main)
+    let selectedCommit = ($commit | str trim)
+    let stackCommits = (
+        ^git rev-list --reverse $"($mainBranch)..HEAD"
+        | lines --skip-empty
+        | each {|it| $it | str trim }
+        | where {|it| $it != "" }
+    )
+    if ($stackCommits | is-empty) {
+        mkerr $"No commits to cherry-pick relative to ($mainBranch)."
+    }
+    let resolvedCommit = (try {
+        ^git rev-parse --verify $"($selectedCommit)^0"
+        | str trim
+    } catch {
+        null
+    })
+    if $resolvedCommit == null {
+        mkerr $"Invalid commit: ($selectedCommit)"
+    }
+    if ($resolvedCommit not-in $stackCommits) {
+        mkerr $"Commit ($selectedCommit) is not in the current branch stack relative to ($mainBranch)."
+    }
+    let startIndex = (
+        $stackCommits
+        | enumerate
+        | where {|row| $row.item == $resolvedCommit }
+        | get 0.index
+    )
+    let commitsToCherryPick = ($stackCommits | skip $startIndex)
+    if ($commitsToCherryPick | is-empty) {
+        mkerr $"No commits selected to cherry-pick from ($selectedCommit)."
+    }
+    if ($worktreeName in (git-worktree-branches)) {
+        mkerr $"Worktree branch already exists: ($worktreeName)"
+    }
+    let targetPath = (git-feature-worktree-path $worktreeName)
+    if ($targetPath | path exists) {
+        mkerr $"Worktree path already exists: ($targetPath)"
+    }
+    if ((do { ^git show-ref --verify --quiet $"refs/heads/($worktreeName)" } | complete).exit_code == 0) {
+        mkerr $"Branch already exists: ($worktreeName)"
+    }
+    git-update-main-worktree $mainBranch
+    let targetWorktree = (git-open-feature-worktree $worktreeName $mainBranch)
+    ^git -C $targetWorktree cherry-pick ...$commitsToCherryPick
+    cd $targetWorktree
 }
 
 
